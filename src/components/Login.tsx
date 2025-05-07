@@ -1,16 +1,29 @@
 import { useState } from 'react';
+import { authService } from '../services/auth.service';
 
 interface LoginProps {
-  onLogin: (email: string, password: string) => void;
+  onLogin: (token: string) => void;
 }
 
 const Login = ({ onLogin }: LoginProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(email, password);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await authService.login({ email, password });
+      onLogin(response.token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -21,6 +34,11 @@ const Login = ({ onLogin }: LoginProps) => {
             Inicia sesión en tu cuenta
           </h2>
         </div>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
@@ -37,6 +55,7 @@ const Login = ({ onLogin }: LoginProps) => {
                 placeholder="Correo electrónico"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -53,6 +72,7 @@ const Login = ({ onLogin }: LoginProps) => {
                 placeholder="Contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -60,9 +80,10 @@ const Login = ({ onLogin }: LoginProps) => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              disabled={isLoading}
             >
-              Iniciar sesión
+              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
             </button>
           </div>
         </form>

@@ -1,35 +1,56 @@
-import { useState } from 'react';
-
-interface BranchFormData {
-  name: string;
-  address: string;
-}
+import { useState, useEffect } from 'react';
+import { Branch, CreateBranchDTO } from '../types/branch';
+import { branchService } from '../services/branch.service';
+import toast, { Toaster } from 'react-hot-toast';
 
 const BranchRegistration = () => {
-  const [formData, setFormData] = useState<BranchFormData>({
-    name: '',
-    address: '',
+  const [formData, setFormData] = useState<CreateBranchDTO>({
+    nombre: '',
+    direccion: '',
   });
 
-  const [branches, setBranches] = useState<BranchFormData[]>([
-    // Example data
-    {
-      name: 'Sucursal Centro',
-      address: 'Av. Principal #123, Centro'
-    },
-    {
-      name: 'Sucursal Norte',
-      address: 'Calle Norte #456, Zona Norte'
-    }
-  ]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  const fetchBranches = async () => {
+    try {
+      setIsLoading(true);
+      const data = await branchService.getBranches();
+      setBranches(data);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al cargar las sucursales';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBranches([...branches, formData]);
-    setFormData({
-      name: '',
-      address: '',
-    });
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const newBranch = await branchService.createBranch(formData);
+      setBranches([...branches, newBranch]);
+      setFormData({
+        nombre: '',
+        direccion: '',
+      });
+      toast.success('Sucursal creada exitosamente');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al crear la sucursal';
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,12 +63,43 @@ const BranchRegistration = () => {
 
   return (
     <div className="space-y-8">
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            style: {
+              background: '#333',
+              color: '#fff',
+              border: '1px solid #4aed88',
+            },
+          },
+          error: {
+            duration: 4000,
+            style: {
+              background: '#333',
+              color: '#fff',
+              border: '1px solid #ff4b4b',
+            },
+          },
+        }}
+      />
       {/* Branches Table */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Sucursales Registradas</h2>
         </div>
-        <div className="overflow-x-auto">
+        {error && (
+          <div className="p-4 bg-red-100 border border-red-400 text-red-700" role="alert">
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
+        <div className="overflow-x-auto max-h-[400px]">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -56,10 +108,10 @@ const BranchRegistration = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {branches.map((branch, index) => (
-                <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{branch.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{branch.address}</td>
+              {branches.map((branch) => (
+                <tr key={branch.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{branch.nombre}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{branch.direccion}</td>
                 </tr>
               ))}
             </tbody>
@@ -73,32 +125,34 @@ const BranchRegistration = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Nombre de la Sucursal
               </label>
               <input
                 type="text"
-                id="name"
-                name="name"
-                value={formData.name}
+                id="nombre"
+                name="nombre"
+                value={formData.nombre}
                 onChange={handleChange}
                 className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                 required
+                disabled={isLoading}
               />
             </div>
 
             <div>
-              <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Dirección
               </label>
               <input
                 type="text"
-                id="address"
-                name="address"
-                value={formData.address}
+                id="direccion"
+                name="direccion"
+                value={formData.direccion}
                 onChange={handleChange}
                 className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -106,9 +160,10 @@ const BranchRegistration = () => {
           <div className="pt-4">
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              disabled={isLoading}
             >
-              Registrar Sucursal
+              {isLoading ? 'Registrando...' : 'Registrar Sucursal'}
             </button>
           </div>
         </form>
