@@ -16,6 +16,8 @@ export interface Sale {
   };
   fecha: string;
   total: number;
+  pagado?: boolean;
+  createdAt?: string;
 }
 
 export interface CreateSaleDTO {

@@ -1,11 +1,11 @@
 import axiosInstance from '../config/axios';
 import { AxiosError } from 'axios';
-import { Sale, CreateSaleDTO } from '../types/sale';
+import { Sale } from '../types/sale';
 
 export const saleService = {
   async getSales(): Promise<Sale[]> {
     try {
-      const response = await axiosInstance.get<Sale[]>('/ventas');
+      const response = await axiosInstance.get<Sale[]>('/venta');
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -15,9 +15,9 @@ export const saleService = {
     }
   },
 
-  async createSale(saleData: CreateSaleDTO): Promise<Sale> {
+  async createSale(saleData: any): Promise<Sale> {
     try {
-      const response = await axiosInstance.post<Sale>('/ventas', saleData);
+      const response = await axiosInstance.post<Sale>('/venta', saleData);
       return response.data;
     } catch (error) {
       if (error instanceof AxiosError) {
@@ -25,5 +25,13 @@ export const saleService = {
       }
       throw error;
     }
+  },
+
+  async exportExcel(fechaInicio: string, fechaFin: string): Promise<string> {
+    const response = await axiosInstance.get('/venta/export', {
+      params: { fechaInicio, fechaFin }
+    });
+    if (!response.data || !response.data.file) throw new Error('Respuesta inválida del servidor');
+    return response.data.file;
   }
 }; 
