@@ -1,16 +1,14 @@
-import axios from 'axios';
+import { AxiosError } from 'axios';
 import { Branch, CreateBranchDTO } from '../types/branch';
 import axiosInstance from '../config/axios';
-
-const API_URL = 'http://localhost:3000/api';
 
 export const branchService = {
   async getBranches(): Promise<Branch[]> {
     try {
-      const response = await axiosInstance.get<Branch[]>(`${API_URL}/sucursales`);
+      const response = await axiosInstance.get<Branch[]>('/sucursales');
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (error instanceof AxiosError) {
         throw new Error(error.response?.data?.message || 'Error al obtener las sucursales');
       }
       throw error;
@@ -19,13 +17,13 @@ export const branchService = {
 
   async createBranch(branchData: CreateBranchDTO): Promise<Branch> {
     try {
-      const response = await axiosInstance.post<Branch>(`${API_URL}/sucursales`, branchData);
+      const response = await axiosInstance.post<Branch>('/sucursales', branchData);
       return response.data;
     } catch (error) {
-      if (axios.isAxiosError(error)) {
+      if (error instanceof AxiosError) {
         throw new Error(error.response?.data?.message || 'Error al crear la sucursal');
       }
       throw error;
     }
   }
-}; 
+};

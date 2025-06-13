@@ -1,9 +1,6 @@
-import axios from 'axios';
 import { Service, CreateServiceDTO } from '../types/service';
 import axiosInstance from '../config/axios';
 import { AxiosError } from 'axios';
-
-const API_URL = 'http://localhost:3000/api';
 
 export const serviceService = {
   async getServices(): Promise<Service[]> {
@@ -40,4 +37,4 @@ export const serviceService = {
       throw error;
     }
   }
-}; 
+};
