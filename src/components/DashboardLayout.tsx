@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { FaHome, FaUsers, FaTools, FaStore, FaShoppingCart, FaSignOutAlt } from 'react-icons/fa';
+import { FaHome, FaUsers, FaTools, FaStore, FaShoppingCart, FaSignOutAlt, FaMoneyBillWave } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 
 const DashboardLayout = () => {
@@ -15,6 +15,7 @@ const DashboardLayout = () => {
     { path: '/services/register', label: 'Servicios', icon: <FaTools className="w-5 h-5" /> },
     { path: '/branches/register', label: 'Sucursales', icon: <FaStore className="w-5 h-5" /> },
     { path: '/sales/register', label: 'Ventas', icon: <FaShoppingCart className="w-5 h-5" /> },
+    { path: '/quotations', label: 'Cotizaciones', icon: <FaMoneyBillWave className="w-5 h-5" /> },
   ];
 
   return (

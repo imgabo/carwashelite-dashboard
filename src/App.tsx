@@ -11,55 +11,66 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
 import { useState, useEffect } from 'react';
-
-// Mock data for dashboard
-const dashboardStats = {
-  totalSales: 125000,
-  totalClients: 45,
-  totalBranches: 3,
-  totalServices: 8,
-  recentSales: [
-    { id: 1, client: 'Cliente 1', service: 'Lavado Premium', amount: 200, date: '2024-03-20' },
-    { id: 2, client: 'Cliente 2', service: 'Lavado Básico', amount: 100, date: '2024-03-19' },
-    { id: 3, client: 'Cliente 3', service: 'Lavado Completo', amount: 300, date: '2024-03-19' },
-  ],
-  topServices: [
-    { name: 'Lavado Premium', sales: 25 },
-    { name: 'Lavado Básico', sales: 20 },
-    { name: 'Lavado Completo', sales: 15 },
-  ],
-  branchPerformance: [
-    { name: 'Sucursal Centro', sales: 50000 },
-    { name: 'Sucursal Norte', sales: 45000 },
-    { name: 'Sucursal Sur', sales: 30000 },
-  ],
-};
+import { dashboardService } from './services/dashboard.service';
+import QuotationModule from './components/QuotationModule';
 
 // Componente Dashboard
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState(dashboardStats);
+  const [stats, setStats] = useState({
+    totalSales: 0,
+    totalClients: 0,
+    totalBranches: 0,
+    totalServices: 0,
+    recentSales: [],
+    topServices: [],
+    branchPerformance: [],
+  });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      setIsLoading(true);
       try {
-        // Simulamos una llamada a la API
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setStats(dashboardStats);
+        const [
+          totalSales,
+          totalClients,
+          totalBranches,
+          totalServices,
+          recentSales,
+          topServices,
+          branchPerformance,
+        ] = await Promise.all([
+          dashboardService.getVentasTotales(),
+          dashboardService.getClientesRegistrados(),
+          dashboardService.getSucursales(),
+          dashboardService.getServicios(),
+          dashboardService.getVentasRecientes(3),
+          dashboardService.getServiciosPopulares(3),
+          dashboardService.getRendimientoSucursal(),
+        ]);
+        setStats({
+          totalSales,
+          totalClients,
+          totalBranches,
+          totalServices,
+          recentSales,
+          topServices,
+          branchPerformance,
+        });
       } catch (error) {
-        console.error('Error al cargar los datos del dashboard:', error);
+        // Manejo de error
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchDashboardData();
   }, []);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-MX', {
+    return new Intl.NumberFormat('es-CL', {
       style: 'currency',
-      currency: 'MXN'
+      currency: 'CLP',
+      minimumFractionDigits: 0
     }).format(amount);
   };
 
@@ -136,12 +147,12 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {stats.recentSales.map((sale) => (
+                {stats.recentSales.map((sale: any) => (
                   <tr key={sale.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{sale.client}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{sale.service}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{formatCurrency(sale.amount)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{sale.date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{sale.cliente ?? ''}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{sale.servicio?.nombre ?? sale.servicio ?? ''}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{formatCurrency(sale.total ?? sale.monto ?? 0)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{sale.fecha ? new Date(sale.fecha).toLocaleDateString('es-CL') : ''}</td>
                   </tr>
                 ))}
               </tbody>
@@ -156,10 +167,10 @@ const Dashboard = () => {
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">Servicios más Populares</h3>
           </div>
           <div className="space-y-4">
-            {stats.topServices.map((service, index) => (
+            {stats.topServices.map((service: any, index: number) => (
               <div key={index} className="flex items-center justify-between">
-                <span className="text-sm text-gray-900 dark:text-white">{service.name}</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{service.sales} ventas</span>
+                <span className="text-sm text-gray-900 dark:text-white">{service.nombre ?? service.name}</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{service.cantidad ?? service.sales} ventas</span>
               </div>
             ))}
           </div>
@@ -173,20 +184,23 @@ const Dashboard = () => {
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">Rendimiento por Sucursal</h3>
         </div>
         <div className="space-y-4">
-          {stats.branchPerformance.map((branch, index) => (
-            <div key={index}>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm text-gray-900 dark:text-white">{branch.name}</span>
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(branch.sales)}</span>
+          {(() => {
+            const maxSucursal = Math.max(...stats.branchPerformance.map((b: any) => b.total ?? b.sales ?? 0), 1);
+            return stats.branchPerformance.map((branch: any, index: number) => (
+              <div key={index}>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm text-gray-900 dark:text-white">{branch.nombre ?? branch.name}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(branch.total ?? branch.sales ?? 0)}</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                  <div
+                    className="bg-indigo-600 h-2.5 rounded-full"
+                    style={{ width: `${Math.min(100, ((branch.total ?? branch.sales ?? 0) / maxSucursal) * 100)}%` }}
+                  ></div>
+                </div>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                <div
-                  className="bg-indigo-600 h-2.5 rounded-full"
-                  style={{ width: `${(branch.sales / stats.totalSales) * 100}%` }}
-                ></div>
-              </div>
-            </div>
-          ))}
+            ));
+          })()}
         </div>
       </div>
     </div>
@@ -229,6 +243,7 @@ function AppRoutes() {
         <Route path="services/register" element={<ServiceRegistration />} />
         <Route path="branches/register" element={<BranchRegistration />} />
         <Route path="sales/register" element={<SaleRegistration />} />
+        <Route path="quotations" element={<QuotationModule />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>

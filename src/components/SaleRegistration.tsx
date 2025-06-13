@@ -54,6 +54,8 @@ const SaleRegistration = () => {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     fetchSales();
@@ -285,6 +287,16 @@ const SaleRegistration = () => {
     );
   });
 
+  // Paginación
+  const totalPages = Math.ceil(filteredSales.length / pageSize);
+  const paginatedSales = filteredSales.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    // Si el filtro cambia y la página actual queda fuera de rango, vuelve a la primera página
+    if (currentPage > totalPages) setCurrentPage(1);
+    // eslint-disable-next-line
+  }, [filteredSales.length]);
+
   // Calcula fechas según rango
   const getExportDates = () => {
     const today = new Date();
@@ -419,8 +431,8 @@ const SaleRegistration = () => {
         )}
         {/* Filtro de búsqueda */}
   
-        <div className={`overflow-x-auto ${!showAllRows && filteredSales.length > 4 ? 'max-h-[320px]' : ''}`}
-             style={!showAllRows && filteredSales.length > 4 ? {overflowY: 'auto'} : {}}>
+        <div className={`overflow-x-auto ${filteredSales.length > 4 ? 'max-h-[320px]' : ''} min-h-[320px]`}
+             style={filteredSales.length > 4 ? {overflowY: 'auto'} : {}}>
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -434,69 +446,87 @@ const SaleRegistration = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {(showAllRows ? filteredSales : filteredSales.slice(0, 4)).map((sale) => (
-                <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 ease-in-out animate-fadeIn">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                    {`${sale.cliente.name} ${sale.cliente.apellido}`}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                    {sale.sucursal.nombre}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-200">
-                    <ul className="list-disc list-inside">
-                      {sale.servicios.map((service) => (
-                        <li key={service.id}>{service.nombre}</li>
-                      ))}
-                    </ul>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                    ${Number(sale.total).toLocaleString('es-CL')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {sale.pagado ? (
-                      <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-400">Pagado</span>
-                    ) : (
-                      <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 border border-red-400">No pagado</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                    {(() => {
-                      const dateStr = sale.createdAt || sale.fecha;
-                      const date = dateStr ? new Date(dateStr) : null;
-                      return date && !isNaN(date.getTime()) ? date.toLocaleDateString() : '-';
-                    })()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleShowDetail(sale.id)}
-                        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200 underline"
-                        title="Ver detalle"
-                      >
-                        Ver detalle
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(sale)}
-                        className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition"
-                        title="Eliminar"
-                        aria-label="Eliminar"
-                      >
-                        <FaTrash className="w-5 h-5 text-red-500" />
-                      </button>
-                    </div>
+              {filteredSales.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-gray-500 dark:text-gray-400 text-lg">
+                    No hay ventas registradas
                   </td>
                 </tr>
-              ))}
+              ) : (
+                paginatedSales.map((sale) => (
+                  <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 ease-in-out animate-fadeIn">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {`${sale.cliente.name} ${sale.cliente.apellido}`}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {sale.sucursal.nombre}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-200">
+                      <ul className="list-disc list-inside">
+                        {sale.servicios.map((service) => (
+                          <li key={service.id}>{service.nombre}</li>
+                        ))}
+                      </ul>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      ${Number(sale.total).toLocaleString('es-CL')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {sale.pagado ? (
+                        <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-400">Pagado</span>
+                      ) : (
+                        <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 border border-red-400">No pagado</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {(() => {
+                        const dateStr = sale.createdAt || sale.fecha;
+                        const date = dateStr ? new Date(dateStr) : null;
+                        return date && !isNaN(date.getTime()) ? date.toLocaleDateString() : '-';
+                      })()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleShowDetail(sale.id)}
+                          className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200 underline"
+                          title="Ver detalle"
+                        >
+                          Ver detalle
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(sale)}
+                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 transition"
+                          title="Eliminar"
+                          aria-label="Eliminar"
+                        >
+                          <FaTrash className="w-5 h-5 text-red-500" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-        {filteredSales.length > 4 && (
-          <div className="flex justify-center py-2">
+        {/* Paginación */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 py-4">
             <button
-              onClick={() => setShowAllRows(v => !v)}
-              className="px-4 py-2 text-sm font-medium rounded bg-indigo-600 hover:bg-indigo-700 text-white shadow"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
             >
-              {showAllRows ? 'Mostrar menos' : 'Mostrar más'}
+              Anterior
+            </button>
+            <span className="text-gray-700 dark:text-gray-200">Página {currentPage} de {totalPages}</span>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+            >
+              Siguiente
             </button>
           </div>
         )}
