@@ -88,29 +88,29 @@ const QuotationModule = () => {
     // Datos empresa
     doc.setFontSize(11);
     doc.text('MULTISERVICIOS SYM', 15, 38);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('Helvetica', 'bold');
     doc.text('RUT: ', 15, 44);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('Helvetica', 'normal');
     doc.text('77.808.587-9', 32, 44);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('Helvetica', 'bold');
     doc.text('GIRO: ', 15, 50);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('Helvetica', 'normal');
     doc.text('MECANICA AUTOMOTRIZ, TAPICERIA, VENTA ACCESORIOS, REPUESTOS, LAVADO DE AUTOS', 32, 50);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('Helvetica', 'bold');
     doc.text('DIRECCIÓN: ', 15, 56);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('Helvetica', 'normal');
     doc.text('BARCARCEL #066', 40, 56);
     // Datos cliente
     let y = 65;
     doc.setFillColor(255, 221, 77);
     doc.rect(15, y, 35, 30, 'F');
-    doc.setFont(undefined, 'bold');
+    doc.setFont('Helvetica', 'bold');
     doc.text('CLIENTE:', 17, y + 6);
     doc.text('RUT:', 17, y + 12);
     doc.text('FECHA:', 17, y + 18);
     doc.text('VALIDO HASTA:', 17, y + 24);
     doc.text('TIPO DE PAGO:', 17, y + 30);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('Helvetica', 'normal');
     doc.text((client.name ?? '') + '', 50, y + 6);
     doc.text((clientRUT ?? '') + '', 50, y + 12);
     doc.text((date ?? '') + '', 50, y + 18);

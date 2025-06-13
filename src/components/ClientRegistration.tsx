@@ -20,7 +20,7 @@ const ClientRegistration = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
-  const suggestionTimeoutRef = useRef<number | null>(null);
+  const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     fetchClients();
@@ -320,4 +320,4 @@ const ClientRegistration = () => {
   );
 };
 
-export default ClientRegistration; 
+export default ClientRegistration;

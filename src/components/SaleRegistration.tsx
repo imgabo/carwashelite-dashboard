@@ -38,7 +38,7 @@ const SaleRegistration = () => {
     descripcion: '',
   });
   const [showCustomServiceForm, setShowCustomServiceForm] = useState(false);
-  const suggestionTimeoutRef = useRef<number | null>(null);
+  const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pagado, setPagado] = useState(true);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailSale, setDetailSale] = useState<any>(null);
@@ -882,4 +882,4 @@ const SaleRegistration = () => {
   );
 };
 
-export default SaleRegistration; 
+export default SaleRegistration;
