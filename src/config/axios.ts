@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { useLoadingStore } from '../store/loadingStore';
 
-const API_URL = 'http://localhost:3000/api';
+// Configuración de URL base que funciona en desarrollo y producción
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -34,4 +35,4 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-export default axiosInstance; 
+export default axiosInstance;
