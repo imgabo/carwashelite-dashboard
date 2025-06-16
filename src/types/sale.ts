@@ -18,6 +18,7 @@ export interface Sale {
   total: number;
   pagado?: boolean;
   createdAt?: string;
+  patente?: string;
 }
 
 export interface CreateSaleDTO {
@@ -29,4 +30,5 @@ export interface CreateSaleDTO {
     descripcion?: string;
   }[];
   sucursalId: number;
-} 
+  patente?: string;
+}

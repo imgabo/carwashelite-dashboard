@@ -8,7 +8,6 @@ import { clientService } from '../services/client.service';
 import { serviceService } from '../services/service.service';
 import { branchService } from '../services/branch.service';
 import toast from 'react-hot-toast';
-import axios from 'axios';
 import { FaTrash } from 'react-icons/fa';
 
 interface CustomService {
@@ -21,6 +20,7 @@ const SaleRegistration = () => {
   const [formData, setFormData] = useState({
     clienteId: 0,
     sucursalId: 0,
+    patente: '',
   });
 
   const [sales, setSales] = useState<Sale[]>([]);
@@ -127,6 +127,7 @@ const SaleRegistration = () => {
       const saleData = {
         clienteId: formData.clienteId,
         sucursalId: formData.sucursalId,
+        patente: formData.patente,
         serviciosIds,
         serviciosPersonalizados,
         pagado,
@@ -137,6 +138,7 @@ const SaleRegistration = () => {
       setFormData({
         clienteId: 0,
         sucursalId: 0,
+        patente: '',
       });
       setSelectedServices([]);
       setSearchTerm('');
@@ -197,6 +199,36 @@ const SaleRegistration = () => {
     setShowCustomServiceForm(false);
   };
 
+  // Función para formatear patente chilena
+  const formatPatente = (value: string) => {
+    // Remover caracteres no alfanuméricos
+    const cleaned = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    
+    // Formato antiguo: LLLL·NN (4 letras + 2 números)
+    if (cleaned.length <= 6) {
+      if (cleaned.length <= 4) {
+        return cleaned;
+      } else {
+        return cleaned.slice(0, 4) + '·' + cleaned.slice(4, 6);
+      }
+    }
+    
+    // Formato nuevo: LL·NNNN (2 letras + 4 números)
+    if (cleaned.length <= 2) {
+      return cleaned;
+    } else {
+      return cleaned.slice(0, 2) + '·' + cleaned.slice(2, 6);
+    }
+  };
+
+  const handlePatenteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPatente(e.target.value);
+    setFormData(prev => ({
+      ...prev,
+      patente: formatted
+    }));
+  };
+
   const filteredClients = clients.filter(client =>
     `${client.name} ${client.apellido}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -208,10 +240,10 @@ const SaleRegistration = () => {
     setDetailError(null);
     setShowDetailModal(true);
     try {
-      const { data } = await axios.get(`http://localhost:3000/api/venta/${saleId}`);
+      const data = await saleService.getSaleDetail(saleId);
       setDetailSale(data);
     } catch (err: any) {
-      setDetailError('Error al cargar el detalle de la venta');
+      setDetailError(err.message || 'Error al cargar el detalle de la venta');
       setDetailSale(null);
     } finally {
       setIsDetailLoading(false);
@@ -228,12 +260,12 @@ const SaleRegistration = () => {
     if (!detailSale) return;
     setIsTogglingPaid(true);
     try {
-      const { data } = await axios.patch(`http://localhost:3000/api/venta/${detailSale.id}`, { pagado: !detailSale.pagado });
+      const data = await saleService.updateSalePaymentStatus(detailSale.id, !detailSale.pagado);
       setDetailSale((prev: any) => ({ ...prev, pagado: data.pagado }));
       toast.success('Estado de pago actualizado');
       fetchSales();
-    } catch (err) {
-      toast.error('Error al actualizar el estado de pago');
+    } catch (err: any) {
+      toast.error(err.message || 'Error al actualizar el estado de pago');
     } finally {
       setIsTogglingPaid(false);
     }
@@ -247,11 +279,11 @@ const SaleRegistration = () => {
     if (!saleToDelete) return;
     setIsDeleting(true);
     try {
-      await axios.delete(`http://localhost:3000/api/venta/${saleToDelete.id}`);
+      await saleService.deleteSale(saleToDelete.id);
       toast.success('Venta eliminada');
       fetchSales();
-    } catch (err) {
-      toast.error('Error al eliminar la venta');
+    } catch (err: any) {
+      toast.error(err.message || 'Error al eliminar la venta');
     } finally {
       setIsDeleting(false);
       setSaleToDelete(null);
@@ -266,6 +298,7 @@ const SaleRegistration = () => {
   const filteredSales = sales.filter((sale) => {
     const search = tableSearch.toLowerCase();
     const cliente = `${sale.cliente?.name ?? ''} ${sale.cliente?.apellido ?? ''}`.toLowerCase();
+    const patente = sale.patente?.toLowerCase() ?? '';
     const sucursal = sale.sucursal?.nombre?.toLowerCase() ?? '';
     const servicios = sale.servicios?.map(s => s.nombre).join(' ').toLowerCase() ?? '';
     const total = Number(sale.total).toLocaleString('es-CL');
@@ -279,6 +312,7 @@ const SaleRegistration = () => {
     })().toLowerCase();
     return (
       cliente.includes(search) ||
+      patente.includes(search) ||
       sucursal.includes(search) ||
       servicios.includes(search) ||
       total.includes(search) ||
@@ -437,6 +471,7 @@ const SaleRegistration = () => {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cliente</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Patente</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Sucursal</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Servicios</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total</th>
@@ -448,7 +483,7 @@ const SaleRegistration = () => {
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-500 dark:text-gray-400 text-lg">
+                  <td colSpan={8} className="text-center py-12 text-gray-500 dark:text-gray-400 text-lg">
                     No hay ventas registradas
                   </td>
                 </tr>
@@ -457,6 +492,9 @@ const SaleRegistration = () => {
                   <tr key={sale.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 ease-in-out animate-fadeIn">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                       {`${sale.cliente.name} ${sale.cliente.apellido}`}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {sale.patente || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                       {sale.sucursal.nombre}
@@ -586,6 +624,26 @@ const SaleRegistration = () => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Patente */}
+            <div>
+              <label htmlFor="patente" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Patente del Vehículo
+              </label>
+              <input
+                type="text"
+                id="patente"
+                value={formData.patente}
+                onChange={handlePatenteChange}
+                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                placeholder="Ej: ABCD·12 o AB·1234"
+                maxLength={7}
+                disabled={isLoading}
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Formato: 4 letras + 2 números (LLLL·NN) o 2 letras + 4 números (LL·NNNN)
+              </p>
             </div>
           </div>
 
@@ -764,6 +822,10 @@ const SaleRegistration = () => {
                   <span className="font-semibold text-lg block mb-1 text-gray-300">Sucursal</span>
                   <span className="text-gray-100">{detailSale.sucursal?.nombre}</span>
                   <span className="text-gray-400 ml-2">({detailSale.sucursal?.direccion})</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-lg block mb-1 text-gray-300">Patente</span>
+                  <span className="text-gray-100">{detailSale.patente}</span>
                 </div>
                 <hr className="border-gray-600" />
                 <div>
