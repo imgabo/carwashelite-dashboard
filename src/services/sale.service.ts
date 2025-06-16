@@ -27,6 +27,41 @@ export const saleService = {
     }
   },
 
+  async getSaleDetail(saleId: number): Promise<any> {
+    try {
+      const response = await axiosInstance.get(`/venta/${saleId}`);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw new Error(error.response?.data?.message || 'Error al cargar el detalle de la venta');
+      }
+      throw error;
+    }
+  },
+
+  async updateSalePaymentStatus(saleId: number, pagado: boolean): Promise<any> {
+    try {
+      const response = await axiosInstance.patch(`/venta/${saleId}`, { pagado });
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw new Error(error.response?.data?.message || 'Error al actualizar el estado de pago');
+      }
+      throw error;
+    }
+  },
+
+  async deleteSale(saleId: number): Promise<void> {
+    try {
+      await axiosInstance.delete(`/venta/${saleId}`);
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw new Error(error.response?.data?.message || 'Error al eliminar la venta');
+      }
+      throw error;
+    }
+  },
+
   async exportExcel(fechaInicio: string, fechaFin: string): Promise<string> {
     const response = await axiosInstance.get('/venta/export', {
       params: { fechaInicio, fechaFin }
@@ -34,4 +69,4 @@ export const saleService = {
     if (!response.data || !response.data.file) throw new Error('Respuesta inválida del servidor');
     return response.data.file;
   }
-}; 
+};
