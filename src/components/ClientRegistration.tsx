@@ -3,7 +3,7 @@ import { Client, CreateClientDTO, Company } from '../types/client';
 import { clientService } from '../services/client.service';
 import { companyService } from '../services/company.service';
 import toast from 'react-hot-toast';
-import { FaTrash } from 'react-icons/fa';
+import { FaTrash, FaEdit } from 'react-icons/fa';
 
 const ClientRegistration = () => {
   const [formData, setFormData] = useState<CreateClientDTO>({
@@ -21,6 +21,8 @@ const ClientRegistration = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const suggestionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<CreateClientDTO>>({});
 
   useEffect(() => {
     fetchClients();
@@ -152,6 +154,56 @@ const ClientRegistration = () => {
     company.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleEditClick = (client: Client) => {
+    setClientToEdit(client);
+    setEditFormData({
+      name: client.name,
+      apellido: client.apellido,
+      telefono: client.telefono,
+      empresaId: client.empresa?.id || 0,
+      empresaNombre: client.empresa?.name || '',
+    });
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleEditCompanySearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEditFormData(prev => ({
+      ...prev,
+      empresaNombre: value,
+      empresaId: 0
+    }));
+  };
+
+  const handleEditCompanySelect = (company: Company) => {
+    setEditFormData(prev => ({
+      ...prev,
+      empresaId: company.id,
+      empresaNombre: ''
+    }));
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientToEdit) return;
+    try {
+      const updated = await clientService.updateClient(clientToEdit.id, editFormData);
+      setClients(clients.map(c => (c.id === updated.id ? updated : c)));
+      toast.success('Cliente actualizado exitosamente');
+      setClientToEdit(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar el cliente';
+      toast.error(errorMessage);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Clients Table */}
@@ -185,10 +237,17 @@ const ClientRegistration = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                     <button
                       onClick={() => handleDeleteClick(client)}
-                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 mr-2"
                       title="Eliminar cliente"
                     >
                       <FaTrash className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleEditClick(client)}
+                      className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                      title="Editar cliente"
+                    >
+                      <FaEdit className="w-5 h-5" />
                     </button>
                   </td>
                 </tr>
@@ -224,6 +283,96 @@ const ClientRegistration = () => {
                 Eliminar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Confirmation Modal */}
+      {clientToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center h-full">
+          <div className="absolute inset-0 w-full bg-black/30 backdrop-blur-sm"></div>
+          <div className="relative z-10 max-w-md w-full bg-white/90 dark:bg-gray-800/90 p-6 rounded-lg shadow-xl">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              Editar Cliente
+            </h3>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="edit-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre</label>
+                <input
+                  type="text"
+                  id="edit-name"
+                  name="name"
+                  value={editFormData.name || ''}
+                  onChange={handleEditChange}
+                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-apellido" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Apellido</label>
+                <input
+                  type="text"
+                  id="edit-apellido"
+                  name="apellido"
+                  value={editFormData.apellido || ''}
+                  onChange={handleEditChange}
+                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-telefono" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Número de Teléfono</label>
+                <input
+                  type="tel"
+                  id="edit-telefono"
+                  name="telefono"
+                  value={editFormData.telefono || ''}
+                  onChange={handleEditChange}
+                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  required
+                />
+              </div>
+              <div className="relative">
+                <label htmlFor="edit-empresa" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Empresa</label>
+                <input
+                  type="text"
+                  id="edit-empresa"
+                  name="empresaNombre"
+                  value={editFormData.empresaNombre || (editFormData.empresaId ? companies.find(c => c.id === editFormData.empresaId)?.name : '') || ''}
+                  onChange={handleEditCompanySearch}
+                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  placeholder="Buscar empresa..."
+                />
+                {editFormData.empresaNombre && companies.filter(company => company.name.toLowerCase().includes((editFormData.empresaNombre || '').toLowerCase())).length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 shadow-lg rounded-md border border-gray-200 dark:border-gray-700 max-h-60 overflow-auto">
+                    {companies.filter(company => company.name.toLowerCase().includes((editFormData.empresaNombre || '').toLowerCase())).map(company => (
+                      <div
+                        key={company.id}
+                        className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-900 dark:text-white"
+                        onClick={() => handleEditCompanySelect(company)}
+                      >
+                        {company.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end space-x-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setClientToEdit(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

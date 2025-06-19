@@ -48,5 +48,17 @@ export const clientService = {
       }
       throw error;
     }
+  },
+
+  async updateClient(id: number, clientData: Partial<CreateClientDTO>): Promise<Client> {
+    try {
+      const response = await axiosInstance.patch<Client>(`/clientes/${id}`, clientData);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw new Error(error.response?.data?.message || 'Error al actualizar el cliente');
+      }
+      throw error;
+    }
   }
 }; 
