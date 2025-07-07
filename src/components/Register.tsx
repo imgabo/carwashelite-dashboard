@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { authService } from '../services/auth.service';
 import toast from 'react-hot-toast';
 
-const Login = () => {
+const Register = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: '',
+    code: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -17,6 +19,10 @@ const Login = () => {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
+    if (!formData.name.trim()) {
+      newErrors.name = 'El nombre es requerido';
+    }
+
     if (!formData.email.trim()) {
       newErrors.email = 'El email es requerido';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -25,6 +31,16 @@ const Login = () => {
 
     if (!formData.password) {
       newErrors.password = 'La contraseña es requerida';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Las contraseñas no coinciden';
+    }
+
+    if (!formData.code.trim()) {
+      newErrors.code = 'El código de registro es requerido';
     }
 
     setErrors(newErrors);
@@ -37,11 +53,11 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      const response = await authService.login(formData);
-      login(response.token);
-      navigate('/');
+      const { confirmPassword, ...registerData } = formData;
+      await register(registerData.name, registerData.email, registerData.password, registerData.code);
+      navigate('/login');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión';
+      const errorMessage = err instanceof Error ? err.message : 'Error al registrar usuario';
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -79,20 +95,38 @@ const Login = () => {
       <div className="max-w-md w-full space-y-8">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Iniciar sesión
+            Crear cuenta
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            ¿No tienes una cuenta?{' '}
+            ¿Ya tienes una cuenta?{' '}
             <button
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/login')}
               className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
             >
-              Regístrate aquí
+              Inicia sesión aquí
             </button>
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <label htmlFor="name" className="sr-only">
+                Nombre completo
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                required
+                className={`${getInputClassName('name')} rounded-t-md`}
+                placeholder="Nombre completo"
+                value={formData.name}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+              {errors.name && <p className="mt-1 text-xs text-red-500">{errors.name}</p>}
+            </div>
             <div>
               <label htmlFor="email-address" className="sr-only">
                 Correo electrónico
@@ -103,7 +137,7 @@ const Login = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className={`${getInputClassName('email')} rounded-t-md`}
+                className={getInputClassName('email')}
                 placeholder="Correo electrónico"
                 value={formData.email}
                 onChange={handleChange}
@@ -119,15 +153,50 @@ const Login = () => {
                 id="password"
                 name="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete="new-password"
                 required
-                className={`${getInputClassName('password')} rounded-b-md`}
+                className={getInputClassName('password')}
                 placeholder="Contraseña"
                 value={formData.password}
                 onChange={handleChange}
                 disabled={isLoading}
               />
               {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}
+            </div>
+            <div>
+              <label htmlFor="confirm-password" className="sr-only">
+                Confirmar contraseña
+              </label>
+              <input
+                id="confirm-password"
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                required
+                className={getInputClassName('confirmPassword')}
+                placeholder="Confirmar contraseña"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+              {errors.confirmPassword && <p className="mt-1 text-xs text-red-500">{errors.confirmPassword}</p>}
+            </div>
+            <div>
+              <label htmlFor="code" className="sr-only">
+                Código de registro
+              </label>
+              <input
+                id="code"
+                name="code"
+                type="text"
+                required
+                className={`${getInputClassName('code')} rounded-b-md`}
+                placeholder="Código de registro"
+                value={formData.code}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+              {errors.code && <p className="mt-1 text-xs text-red-500">{errors.code}</p>}
             </div>
           </div>
 
@@ -137,7 +206,7 @@ const Login = () => {
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 dark:disabled:opacity-40"
               disabled={isLoading}
             >
-              {isLoading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              {isLoading ? 'Registrando...' : 'Registrarse'}
             </button>
           </div>
         </form>
@@ -146,4 +215,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

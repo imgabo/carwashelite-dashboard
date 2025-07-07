@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Service, CreateServiceDTO } from '../types/service';
 import { serviceService } from '../services/service.service';
 import toast from 'react-hot-toast';
-import { FaTrash } from 'react-icons/fa';
+import { FaTrash, FaEdit } from 'react-icons/fa';
 
 const ServiceRegistration = () => {
   const [formData, setFormData] = useState<CreateServiceDTO>({
@@ -14,6 +14,11 @@ const ServiceRegistration = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
+  const [serviceToEdit, setServiceToEdit] = useState<Service | null>(null);
+  const [editFormData, setEditFormData] = useState<CreateServiceDTO>({
+    nombre: '',
+    precio: 0
+  });
 
   useEffect(() => {
     fetchServices();
@@ -59,6 +64,14 @@ const ServiceRegistration = () => {
     setServiceToDelete(service);
   };
 
+  const handleEditClick = (service: Service) => {
+    setServiceToEdit(service);
+    setEditFormData({
+      nombre: service.nombre,
+      precio: service.precio,
+    });
+  };
+
   const handleDeleteConfirm = async () => {
     if (!serviceToDelete) return;
     try {
@@ -73,13 +86,54 @@ const ServiceRegistration = () => {
     }
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!serviceToEdit) return;
+
+    if (!editFormData.nombre.trim()) {
+      toast.error('El nombre del servicio es requerido');
+      return;
+    }
+
+    if (editFormData.precio <= 0) {
+      toast.error('El precio debe ser mayor a 0');
+      return;
+    }
+
+    try {
+      const updated = await serviceService.updateService(serviceToEdit.id, editFormData);
+      setServices(services.map(s => (s.id === updated.id ? updated : s)));
+      toast.success('Servicio actualizado exitosamente');
+      setServiceToEdit(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Error al actualizar el servicio';
+      toast.error(errorMessage);
+    }
+  };
+
   const handleDeleteCancel = () => {
     setServiceToDelete(null);
+  };
+
+  const handleEditCancel = () => {
+    setServiceToEdit(null);
+    setEditFormData({
+      nombre: '',
+      precio: 0
+    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
+      ...prev,
+      [name]: name === 'precio' ? parseFloat(value) || 0 : value
+    }));
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
       ...prev,
       [name]: name === 'precio' ? parseFloat(value) || 0 : value
     }));
@@ -114,10 +168,17 @@ const ServiceRegistration = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                     <button
                       onClick={() => handleDeleteClick(service)}
-                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 mr-2"
                       title="Eliminar servicio"
                     >
                       <FaTrash className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleEditClick(service)}
+                      className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                      title="Editar servicio"
+                    >
+                      <FaEdit className="w-5 h-5" />
                     </button>
                   </td>
                 </tr>
@@ -130,7 +191,7 @@ const ServiceRegistration = () => {
       {/* Delete Confirmation Modal */}
       {serviceToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center h-full">
-          <div className="absolute inset-0 w-full  bg-black/30 backdrop-blur-sm"></div>
+          <div className="absolute inset-0 w-full bg-black/30 backdrop-blur-sm"></div>
           <div className="relative z-10 max-w-md w-full bg-white/90 dark:bg-gray-800/90 p-6 rounded-lg shadow-xl">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
               Confirmar eliminación
@@ -153,6 +214,65 @@ const ServiceRegistration = () => {
                 Eliminar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {serviceToEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center h-full">
+          <div className="absolute inset-0 w-full bg-black/30 backdrop-blur-sm"></div>
+          <div className="relative z-10 max-w-md w-full bg-white/90 dark:bg-gray-800/90 p-6 rounded-lg shadow-xl">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+              Editar Servicio
+            </h3>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="edit-nombre" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Nombre del Servicio
+                </label>
+                <input
+                  type="text"
+                  id="edit-nombre"
+                  name="nombre"
+                  value={editFormData.nombre}
+                  onChange={handleEditChange}
+                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-precio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Precio
+                </label>
+                <input
+                  type="number"
+                  id="edit-precio"
+                  name="precio"
+                  value={editFormData.precio}
+                  onChange={handleEditChange}
+                  min="0"
+                  step="0.01"
+                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-4 pt-4">
+                <button
+                  type="button"
+                  onClick={handleEditCancel}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -212,4 +332,4 @@ const ServiceRegistration = () => {
   );
 };
 
-export default ServiceRegistration; 
+export default ServiceRegistration;

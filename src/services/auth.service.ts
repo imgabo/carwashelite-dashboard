@@ -1,6 +1,6 @@
 import axiosInstance from '../config/axios';
 import { AxiosError } from 'axios';
-import { LoginDTO, LoginResponse } from '../types/auth';
+import { LoginDTO, LoginResponse, RegisterDTO, RegisterResponse } from '../types/auth';
 
 const TOKEN_KEY = 'auth_token';
 
@@ -13,6 +13,18 @@ export const authService = {
     } catch (error) {
       if (error instanceof AxiosError) {
         throw new Error(error.response?.data?.message || 'Error durante el login');
+      }
+      throw error;
+    }
+  },
+
+  async register(data: RegisterDTO): Promise<RegisterResponse> {
+    try {
+      const response = await axiosInstance.post<RegisterResponse>('/auth/register', data);
+      return response.data;
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        throw new Error(error.response?.data?.message || 'Error al registrar usuario');
       }
       throw error;
     }

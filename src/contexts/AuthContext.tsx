@@ -1,24 +1,28 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService } from '../services/auth.service';
+import { RegisterResponse } from '../types/auth';
+import toast from 'react-hot-toast';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   login: (token: string) => void;
   logout: () => void;
+  register: (name: string, email: string, password: string, code: string) => Promise<RegisterResponse>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return authService.isAuthenticated();
+  });
 
   useEffect(() => {
-    // Verificar el estado de autenticación al cargar la aplicación
-    const checkAuth = () => {
-      const isAuth = authService.isAuthenticated();
-      setIsAuthenticated(isAuth);
-    };
-    checkAuth();
+    // Verificar autenticación cuando el componente se monta
+    const token = authService.getToken();
+    if (token) {
+      setIsAuthenticated(true);
+    }
   }, []);
 
   const login = (token: string) => {
@@ -31,8 +35,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
   };
 
+  const register = async (name: string, email: string, password: string, code: string): Promise<RegisterResponse> => {
+    const response = await authService.register({ name, email, password, code });
+    toast.success('Registro exitoso. Por favor inicia sesión.');
+    return response;
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout, register }}>
       {children}
     </AuthContext.Provider>
   );
@@ -44,4 +54,4 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}

@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+
+
+/* Estilos para el selector de período */
+select option {
+  @apply bg-gray-800 text-white;
+}
+
+.dark select option {
+  @apply bg-gray-900;
+}
+
+/* Otros estilos existentes... */

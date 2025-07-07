@@ -7,4 +7,9 @@ export interface Service {
 export interface CreateServiceDTO {
   nombre: string;
   precio: number;
-} 
+}
+
+export interface UpdateServiceDTO {
+  nombre: string;
+  precio: number;
+}
