@@ -13,6 +13,8 @@ export default defineConfig({
     host: '0.0.0.0',
     allowedHosts: [
       'healthcheck.railway.app',
+      'multiserviciosym.cl',
+      'www.multiserviciosym.cl',
       'carwashelite-dashboard-production.up.railway.app'
     ]
   },
