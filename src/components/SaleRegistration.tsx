@@ -382,6 +382,29 @@ const SaleRegistration = () => {
     }
   };
 
+  // Función para formatear número como moneda chilena
+  const formatCLP = (value: number) => {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  // Función para parsear valor de input de moneda
+  const parseCLPInput = (value: string) => {
+    // Remover todo excepto números
+    const numericValue = value.replace(/[^\d]/g, '');
+    return numericValue === '' ? 0 : parseInt(numericValue, 10);
+  };
+
+  // Función para formatear input de moneda durante la escritura
+  const formatCLPInput = (value: number) => {
+    if (value === 0) return '';
+    return value.toLocaleString('es-CL');
+  };
+
   return (
     <div className="space-y-3">
       {/* Sales Table */}
@@ -500,14 +523,49 @@ const SaleRegistration = () => {
                       {sale.sucursal.nombre}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-200">
-                      <ul className="list-disc list-inside">
-                        {sale.servicios.map((service) => (
-                          <li key={service.id}>{service.nombre}</li>
-                        ))}
-                      </ul>
+                      <div className="space-y-1">
+                        {/* Servicios regulares */}
+                        {sale.servicios?.length > 0 && (
+                          <ul className="list-disc list-inside space-y-1">
+                            {sale.servicios.map((service) => (
+                              <li key={service.id} className="text-sm">
+                                <span className="font-medium">{service.nombre}</span>
+                                <span className="text-gray-500 dark:text-gray-400 ml-2">
+                                  ({formatCLP(Number(service.precio))})
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        
+                        {/* Servicios personalizados */}
+                        {sale.serviciosPersonalizados && sale.serviciosPersonalizados.length > 0 && (
+                          <ul className="list-disc list-inside space-y-1 mt-2">
+                            {sale.serviciosPersonalizados.map((customService, index: number) => (
+                              <li key={`custom-${index}`} className="text-sm">
+                                <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                                  {customService.nombre}
+                                </span>
+                                <span className="text-gray-500 dark:text-gray-400 ml-2">
+                                  ({formatCLP(Number(customService.precio))})
+                                </span>
+                                <span className="inline-block ml-2 px-2 py-0.5 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
+                                  Personalizado
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        
+                        {/* Mensaje cuando no hay servicios */}
+                        {(!sale.servicios || sale.servicios.length === 0) && 
+                         (!sale.serviciosPersonalizados || sale.serviciosPersonalizados.length === 0) && (
+                          <span className="text-gray-400 italic">Sin servicios</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                      ${Number(sale.total).toLocaleString('es-CL')}
+                      {formatCLP(Number(sale.total))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {sale.pagado ? (
@@ -585,6 +643,7 @@ const SaleRegistration = () => {
                 id="cliente"
                 value={searchTerm}
                 onChange={handleClientSearch}
+                autoComplete='off'
                 className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                 placeholder="Buscar cliente..."
                 disabled={isLoading}
@@ -677,7 +736,7 @@ const SaleRegistration = () => {
                     htmlFor={`service-${service.id}`}
                     className="ml-2 block text-sm text-gray-900 dark:text-gray-200"
                   >
-                    {service.nombre} - ${Number(service.precio).toLocaleString('es-CL')}
+                    {service.nombre} - {formatCLP(service.precio)}
                   </label>
                 </div>
               ))}
@@ -687,7 +746,7 @@ const SaleRegistration = () => {
             {selectedServices.filter(service => !('id' in service)).map((service, index) => (
               <div key={index} className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{service.nombre}</p>
-                <p className="text-sm text-gray-900 dark:text-white">${Number(service.precio).toLocaleString('es-CL')}</p>
+                <p className="text-sm text-gray-900 dark:text-white">{formatCLP(service.precio)}</p>
               </div>
             ))}
           </div>
@@ -695,7 +754,7 @@ const SaleRegistration = () => {
           {/* Total */}
           <div className="text-right">
             <p className="text-lg font-medium text-gray-900 dark:text-white">
-              Total: ${Number(total).toLocaleString('es-CL')}
+              Total: {formatCLP(total)}
             </p>
           </div>
 
@@ -749,18 +808,26 @@ const SaleRegistration = () => {
               </div>
               <div>
                 <label htmlFor="precio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Precio
+                  Precio (CLP)
                 </label>
-                <input
-                  type="number"
-                  id="precio"
-                  value={customService.precio}
-                  onChange={(e) => setCustomService(prev => ({ ...prev, precio: Number(e.target.value) }))}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
-                  required
-                  min="0"
-                  step="0.01"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                  <input
+                    type="text"
+                    id="precio"
+                    value={formatCLPInput(customService.precio)}
+                    onChange={(e) => {
+                      const numericValue = parseCLPInput(e.target.value);
+                      setCustomService(prev => ({ ...prev, precio: numericValue }));
+                    }}
+                    className="mt-1 block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                    placeholder="0"
+                    required
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Formato: pesos chilenos sin decimales
+                </p>
               </div>
               <div>
                 <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -834,7 +901,7 @@ const SaleRegistration = () => {
                     {detailSale.servicios?.map((s: any, idx: number) => (
                       <li key={idx} className="flex justify-between">
                         <span className="text-gray-100">{s.nombre}</span>
-                        <span className="font-mono text-right text-gray-100">${Number(s.precio).toLocaleString('es-CL')}</span>
+                        <span className="font-mono text-right text-gray-100">{formatCLP(Number(s.precio))}</span>
                       </li>
                     ))}
                   </ul>
@@ -849,7 +916,7 @@ const SaleRegistration = () => {
                           <li key={idx} className="pl-3 border-l-4 border-indigo-400">
                             <div className="flex justify-between font-medium">
                               <span className="text-gray-100">{sp.nombre}</span>
-                              <span className="font-mono text-gray-100">${Number(sp.precio).toLocaleString('es-CL')}</span>
+                              <span className="font-mono text-gray-100">{formatCLP(Number(sp.precio))}</span>
                             </div>
                             <div className="text-xs text-gray-400 mt-1">{sp.descripcion}</div>
                           </li>
@@ -861,7 +928,7 @@ const SaleRegistration = () => {
                 <hr className="border-gray-600" />
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-gray-300">Total:</span>
-                  <span className="font-mono text-lg text-gray-100">${Number(detailSale.total).toLocaleString('es-CL')}</span>
+                  <span className="font-mono text-lg text-gray-100">{formatCLP(Number(detailSale.total))}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-gray-300">Pagado:</span>

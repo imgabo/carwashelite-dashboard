@@ -5,6 +5,7 @@ export interface LoginDTO {
 
 export interface LoginResponse {
   token: string;
+  refreshToken?: string; // Añadir refresh token opcional
 }
 
 export interface RegisterDTO {
@@ -16,6 +17,7 @@ export interface RegisterDTO {
 
 export interface RegisterResponse {
   token: string;
+  refreshToken?: string; // Añadir refresh token opcional
   user: {
     id: number;
     name: string;

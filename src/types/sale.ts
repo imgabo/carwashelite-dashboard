@@ -4,15 +4,22 @@ export interface Sale {
     id: number;
     name: string;
     apellido: string;
+    telefono?: string;
   };
   servicios: {
     id: number;
     nombre: string;
     precio: number;
   }[];
+  serviciosPersonalizados?: {
+    nombre: string;
+    precio: number;
+    descripcion: string;
+  }[];
   sucursal: {
     id: number;
     nombre: string;
+    direccion?: string;
   };
   fecha: string;
   total: number;

@@ -38,7 +38,8 @@ const Login = () => {
     setIsLoading(true);
     try {
       const response = await authService.login(formData);
-      login(response.token);
+      // Pasar tanto el token como el refresh token al contexto de autenticación
+      login(response.token, response.refreshToken);
       navigate('/');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error al iniciar sesión';

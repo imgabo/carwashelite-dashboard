@@ -123,20 +123,59 @@ const ServiceRegistration = () => {
     });
   };
 
+  // Función para formatear número como moneda chilena
+  const formatCLP = (value: number) => {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  // Función para parsear valor de input de moneda
+  const parseCLPInput = (value: string) => {
+    // Remover todo excepto números
+    const numericValue = value.replace(/[^\d]/g, '');
+    return numericValue === '' ? 0 : parseInt(numericValue, 10);
+  };
+
+  // Función para formatear input de moneda durante la escritura
+  const formatCLPInput = (value: number) => {
+    if (value === 0) return '';
+    return value.toLocaleString('es-CL');
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'precio' ? parseFloat(value) || 0 : value
-    }));
+    if (name === 'precio') {
+      const numericValue = parseCLPInput(value);
+      setFormData(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setEditFormData(prev => ({
-      ...prev,
-      [name]: name === 'precio' ? parseFloat(value) || 0 : value
-    }));
+    if (name === 'precio') {
+      const numericValue = parseCLPInput(value);
+      setEditFormData(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+    } else {
+      setEditFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   return (
@@ -164,7 +203,7 @@ const ServiceRegistration = () => {
               {services.map((service) => (
                 <tr key={service.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{service.nombre}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">${service.precio.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{formatCLP(service.precio)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                     <button
                       onClick={() => handleDeleteClick(service)}
@@ -243,19 +282,24 @@ const ServiceRegistration = () => {
               </div>
               <div>
                 <label htmlFor="edit-precio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Precio
+                  Precio (CLP)
                 </label>
-                <input
-                  type="number"
-                  id="edit-precio"
-                  name="precio"
-                  value={editFormData.precio}
-                  onChange={handleEditChange}
-                  min="0"
-                  step="0.01"
-                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
-                  required
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                  <input
+                    type="text"
+                    id="edit-precio"
+                    name="precio"
+                    value={formatCLPInput(editFormData.precio)}
+                    onChange={handleEditChange}
+                    className="mt-1 block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                    placeholder="0"
+                    required
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Formato: pesos chilenos sin decimales
+                </p>
               </div>
               <div className="flex justify-end space-x-4 pt-4">
                 <button
@@ -300,20 +344,25 @@ const ServiceRegistration = () => {
 
             <div>
               <label htmlFor="precio" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Precio
+                Precio (CLP)
               </label>
-              <input
-                type="number"
-                id="precio"
-                name="precio"
-                value={formData.precio}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
-                required
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                <input
+                  type="text"
+                  id="precio"
+                  name="precio"
+                  value={formatCLPInput(formData.precio)}
+                  onChange={handleChange}
+                  className="mt-1 block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  placeholder="0"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Formato: pesos chilenos sin decimales
+              </p>
             </div>
           </div>
 
