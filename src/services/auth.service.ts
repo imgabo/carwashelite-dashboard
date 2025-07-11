@@ -35,12 +35,13 @@ export const authService = {
     }
   },
 
-  // Nueva función para renovar token
+  // Función mejorada para renovar token
   async refreshToken(): Promise<string | null> {
     try {
       const refreshToken = this.getRefreshToken();
       if (!refreshToken) {
-        throw new Error('No refresh token available');
+        console.warn('No refresh token available');
+        return null;
       }
 
       const response = await axiosInstance.post<{ token: string; refreshToken?: string }>('/auth/refresh', {
@@ -58,26 +59,25 @@ export const authService = {
       return newToken;
     } catch (error) {
       console.error('Error al renovar token:', error);
-      this.logout(); // Limpiar tokens si la renovación falla
+      
+      // Distinguir entre diferentes tipos de errores
+      if (error instanceof AxiosError) {
+        if (error.response?.status === 401) {
+          console.warn('Refresh token expirado o inválido');
+        } else if (error.response?.status === 403) {
+          console.warn('Refresh token revocado');
+        } else {
+          console.warn('Error del servidor al renovar token');
+        }
+      }
+      
+      // Limpiar tokens solo si es un error de autenticación
+      if (error instanceof AxiosError && [401, 403].includes(error.response?.status || 0)) {
+        this.logout();
+      }
+      
       return null;
     }
-  },
-
-  // Nueva función para intentar renovación automática
-  async tryAutoRefresh(): Promise<boolean> {
-    const token = this.getToken();
-    if (!token) return false;
-
-    // Solo intentar renovar si el token expirará en los próximos 10 minutos
-    const timeRemaining = this.getTokenTimeRemaining();
-    const shouldRefresh = timeRemaining > 0 && timeRemaining < 10 * 60 * 1000; // 10 minutos
-
-    if (shouldRefresh) {
-      const newToken = await this.refreshToken();
-      return newToken !== null;
-    }
-
-    return true; // Token aún válido, no necesita renovación
   },
 
   getToken(): string | null {
@@ -117,24 +117,13 @@ export const authService = {
     }
   },
 
+  // Función simplificada sin llamadas asíncronas
   isAuthenticated(): boolean {
     const token = this.getToken();
     if (!token) return false;
 
-    // Verificar si el token está expirado
-    if (this.isTokenExpired(token)) {
-      // Antes de limpiar, intentar renovar automáticamente
-      this.tryAutoRefresh().then(success => {
-        if (!success) {
-          this.logout(); // Solo limpiar si la renovación falló
-        }
-      });
-      
-      // Mientras tanto, considerarlo como no válido
-      return false;
-    }
-
-    return true;
+    // Solo verificar si el token está expirado, sin renovar automáticamente
+    return !this.isTokenExpired(token);
   },
 
   // Nueva función para obtener información del token
@@ -170,6 +159,13 @@ export const authService = {
     const timeRemaining = this.getTokenTimeRemaining();
     // Renovar si quedan menos de 10 minutos
     return timeRemaining > 0 && timeRemaining < 10 * 60 * 1000;
+  },
+
+  // Nueva función para verificar si el token necesita renovación pronto
+  needsRefreshSoon(): boolean {
+    const timeRemaining = this.getTokenTimeRemaining();
+    // Considerar renovación si quedan menos de 5 minutos
+    return timeRemaining > 0 && timeRemaining < 5 * 60 * 1000;
   },
 
   logout(): void {

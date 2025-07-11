@@ -1,65 +1,70 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useEffect, useCallback } from 'react';
 import { authService } from '../services/auth.service';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useTokenValidation = () => {
-  const { isAuthenticated } = useAuth();
-  const [tokenTimeRemaining, setTokenTimeRemaining] = useState<number>(0);
-  const [isAutoRefreshing, setIsAutoRefreshing] = useState<boolean>(false);
+  const { isAuthenticated, logout, isRefreshing } = useAuth();
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
+  // Función para validar token de manera segura
+  const validateToken = useCallback((): boolean => {
+    if (!isAuthenticated) return false;
+    
+    const token = authService.getToken();
+    if (!token) return false;
+    
+    return !authService.isTokenExpired(token);
+  }, [isAuthenticated]);
 
-    // Actualizar tiempo restante cada minuto
-    const updateTokenTime = () => {
-      const timeRemaining = authService.getTokenTimeRemaining();
-      setTokenTimeRemaining(timeRemaining);
+  // Función para verificar si el token necesita renovación
+  const needsRefresh = useCallback((): boolean => {
+    if (!isAuthenticated || isRefreshing) return false;
+    
+    const token = authService.getToken();
+    if (!token) return false;
+    
+    return authService.shouldRefreshToken();
+  }, [isAuthenticated, isRefreshing]);
 
-      // Si quedan menos de 5 minutos, mostrar advertencia
-      if (timeRemaining > 0 && timeRemaining < 5 * 60 * 1000) {
-        console.warn('Token expirará pronto');
-      }
-    };
-
-    updateTokenTime();
-    const interval = setInterval(updateTokenTime, 60 * 1000); // Cada minuto
-
-    return () => clearInterval(interval);
+  // Función para obtener el tiempo restante del token
+  const getTimeRemaining = useCallback((): number => {
+    if (!isAuthenticated) return 0;
+    return authService.getTokenTimeRemaining();
   }, [isAuthenticated]);
 
   // Función para formatear el tiempo restante
-  const formatTimeRemaining = (): string => {
-    if (tokenTimeRemaining <= 0) return '0 min';
+  const formatTimeRemaining = useCallback((): string => {
+    const timeRemaining = getTimeRemaining();
+    if (timeRemaining === 0) return 'Expirado';
     
-    const minutes = Math.floor(tokenTimeRemaining / (60 * 1000));
+    const minutes = Math.floor(timeRemaining / (1000 * 60));
     const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
     
-    if (hours > 0) {
-      const remainingMinutes = minutes % 60;
-      return `${hours}h ${remainingMinutes}m`;
+    if (days > 0) {
+      return `${days} día(s)`;
+    } else if (hours > 0) {
+      return `${hours} hora(s)`;
+    } else {
+      return `${minutes} minuto(s)`;
     }
-    
-    return `${minutes}m`;
-  };
+  }, [getTimeRemaining]);
 
-  // Determinar el estado del token
-  const getTokenStatus = () => {
-    if (tokenTimeRemaining <= 0) return 'expired';
-    if (tokenTimeRemaining < 5 * 60 * 1000) return 'critical'; // Menos de 5 minutos
-    if (tokenTimeRemaining < 15 * 60 * 1000) return 'warning'; // Menos de 15 minutos
-    return 'healthy';
-  };
-
-  const tokenStatus = getTokenStatus();
-  const isTokenExpiringSoon = tokenTimeRemaining > 0 && tokenTimeRemaining < 5 * 60 * 1000;
-  const shouldShowWarning = tokenStatus === 'warning' || tokenStatus === 'critical';
+  // Efecto para limpiar tokens inválidos
+  useEffect(() => {
+    if (isAuthenticated && !validateToken()) {
+      console.warn('Token inválido detectado, cerrando sesión');
+      logout();
+    }
+  }, [isAuthenticated, validateToken, logout]);
 
   return {
-    tokenTimeRemaining,
+    validateToken,
+    needsRefresh,
+    getTimeRemaining,
     formatTimeRemaining,
-    isTokenExpiringSoon,
-    isAutoRefreshing,
-    tokenStatus,
-    shouldShowWarning,
+    isTokenValid: validateToken(),
+    tokenNeedsRefresh: needsRefresh(),
+    timeRemaining: getTimeRemaining(),
+    formattedTimeRemaining: formatTimeRemaining()
   };
 };

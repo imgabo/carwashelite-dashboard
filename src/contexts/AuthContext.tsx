@@ -10,6 +10,7 @@ interface AuthContextType {
   register: (name: string, email: string, password: string, code: string) => Promise<RegisterResponse>;
   checkTokenValidity: () => boolean;
   refreshToken: () => Promise<boolean>;
+  isRefreshing: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,31 +20,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Función para verificar la validez del token
+  // Función para verificar la validez del token sin efectos secundarios
   const checkTokenValidity = (): boolean => {
     const isValid = authService.isAuthenticated();
     if (!isValid && isAuthenticated) {
-      // Si el token no es válido pero el estado dice que está autenticado
       setIsAuthenticated(false);
-      toast.error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
     }
     return isValid;
   };
 
-  // Nueva función para renovar token manualmente
+  // Función para renovar token con control de estados
   const refreshToken = async (): Promise<boolean> => {
-    if (isRefreshing) return false;
+    if (isRefreshing) {
+      console.log('Ya se está renovando el token, esperando...');
+      return false;
+    }
     
     setIsRefreshing(true);
     try {
       const newToken = await authService.refreshToken();
       if (newToken) {
         setIsAuthenticated(true);
-        toast.success('Sesión renovada automáticamente');
+        console.log('Token renovado exitosamente');
         return true;
       } else {
+        console.warn('No se pudo renovar el token');
         setIsAuthenticated(false);
-        toast.error('No se pudo renovar la sesión. Por favor, inicia sesión nuevamente.');
         return false;
       }
     } catch (error) {
@@ -55,41 +57,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Función para intentar renovación automática
-  const tryAutoRefresh = async (): Promise<boolean> => {
-    if (isRefreshing) return false;
+  // Función para manejar la renovación automática de forma controlada
+  const handleAutoRefresh = async (): Promise<void> => {
+    if (isRefreshing) return;
 
-    const shouldRefresh = authService.shouldRefreshToken();
-    if (shouldRefresh) {
-      console.log('Intentando renovación automática del token...');
-      return await refreshToken();
+    const isValid = checkTokenValidity();
+    if (!isValid) {
+      // Si el token no es válido, intentar renovar una vez
+      const refreshed = await refreshToken();
+      if (!refreshed) {
+        toast.error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+        authService.logout();
+        setIsAuthenticated(false);
+      }
+      return;
     }
-    return true;
+
+    // Si el token es válido, verificar si necesita renovación pronto
+    if (authService.shouldRefreshToken()) {
+      console.log('Renovando token automáticamente...');
+      const refreshed = await refreshToken();
+      if (refreshed) {
+        toast.success('Sesión renovada automáticamente');
+      } else {
+        toast.error('No se pudo renovar la sesión. Por favor, inicia sesión nuevamente.');
+        authService.logout();
+        setIsAuthenticated(false);
+      }
+    }
   };
 
+  // Inicialización mejorada
   useEffect(() => {
-    // Verificar autenticación cuando el componente se monta
     const initializeAuth = async () => {
       try {
+        const token = authService.getToken();
+        if (!token) {
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
+
         const isValid = authService.isAuthenticated();
-        
         if (isValid) {
-          // Si el token es válido, verificar si necesita renovación
-          await tryAutoRefresh();
           setIsAuthenticated(true);
+          // Verificar si necesita renovación pronto
+          if (authService.needsRefreshSoon()) {
+            await handleAutoRefresh();
+          }
         } else {
-          const token = authService.getToken();
-          if (token) {
-            // Si hay un token pero no es válido, intentar renovar
-            const refreshed = await refreshToken();
-            if (!refreshed) {
-              toast.error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-              authService.logout();
-            }
+          // Token expirado, intentar renovar
+          const refreshed = await refreshToken();
+          if (!refreshed) {
+            toast.error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+            authService.logout();
           }
         }
       } catch (error) {
-        console.error('Error al verificar autenticación:', error);
+        console.error('Error al inicializar autenticación:', error);
         setIsAuthenticated(false);
         authService.logout();
       } finally {
@@ -98,40 +123,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     initializeAuth();
+  }, []);
 
-    // Verificar y renovar el token cada 5 minutos
+  // Verificación periódica mejorada
+  useEffect(() => {
+    if (!isAuthenticated || isLoading) return;
+
     const tokenCheckInterval = setInterval(async () => {
-      if (isAuthenticated && !isRefreshing) {
-        const isValid = checkTokenValidity();
-        if (isValid) {
-          await tryAutoRefresh();
-        }
+      if (!isRefreshing) {
+        await handleAutoRefresh();
       }
     }, 5 * 60 * 1000); // 5 minutos
 
-    // Limpiar el intervalo cuando el componente se desmonte
-    return () => {
-      clearInterval(tokenCheckInterval);
-    };
-  }, [isAuthenticated]);
+    return () => clearInterval(tokenCheckInterval);
+  }, [isAuthenticated, isLoading, isRefreshing]);
 
-  // Verificar validez del token cuando la ventana recupera el foco
+  // Verificación cuando la ventana recupera el foco
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      if (!document.hidden && isAuthenticated && !isRefreshing) {
-        const isValid = checkTokenValidity();
-        if (isValid) {
-          await tryAutoRefresh();
-        }
+      if (!document.hidden && isAuthenticated && !isRefreshing && !isLoading) {
+        await handleAutoRefresh();
       }
     };
 
     const handleFocus = async () => {
-      if (isAuthenticated && !isRefreshing) {
-        const isValid = checkTokenValidity();
-        if (isValid) {
-          await tryAutoRefresh();
-        }
+      if (isAuthenticated && !isRefreshing && !isLoading) {
+        await handleAutoRefresh();
       }
     };
 
@@ -142,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [isAuthenticated, isRefreshing]);
+  }, [isAuthenticated, isRefreshing, isLoading]);
 
   const login = (token: string, refreshToken?: string) => {
     authService.setToken(token);
@@ -165,12 +182,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response;
   };
 
-  // Mostrar loading mientras se está verificando la autenticación inicial
+  // Componente de loading mejorado
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Verificando sesión...</p>
         </div>
       </div>
@@ -178,7 +195,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, register, checkTokenValidity, refreshToken }}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated, 
+      login, 
+      logout, 
+      register, 
+      checkTokenValidity, 
+      refreshToken, 
+      isRefreshing 
+    }}>
       {children}
     </AuthContext.Provider>
   );
