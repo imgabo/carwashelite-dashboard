@@ -31,6 +31,12 @@ export const useTokenValidation = () => {
     return authService.getTokenTimeRemaining();
   }, [isAuthenticated]);
 
+  // Función para verificar si el token está próximo a expirar
+  const isTokenExpiringSoon = useCallback((): boolean => {
+    if (!isAuthenticated) return false;
+    return authService.needsRefreshSoon();
+  }, [isAuthenticated]);
+
   // Función para formatear el tiempo restante
   const formatTimeRemaining = useCallback((): string => {
     const timeRemaining = getTimeRemaining();
@@ -49,6 +55,26 @@ export const useTokenValidation = () => {
     }
   }, [getTimeRemaining]);
 
+  // Función para obtener el estado del token
+  const tokenStatus = useCallback((): 'healthy' | 'warning' | 'critical' | 'expired' => {
+    if (!isAuthenticated) return 'expired';
+    
+    const timeRemaining = getTimeRemaining();
+    if (timeRemaining === 0) return 'expired';
+    
+    const minutes = Math.floor(timeRemaining / (1000 * 60));
+    
+    if (minutes <= 2) return 'critical';
+    if (minutes <= 10) return 'warning';
+    return 'healthy';
+  }, [isAuthenticated, getTimeRemaining]);
+
+  // Función para determinar si debe mostrar advertencia
+  const shouldShowWarning = useCallback((): boolean => {
+    const status = tokenStatus();
+    return status === 'warning' || status === 'critical';
+  }, [tokenStatus]);
+
   // Efecto para limpiar tokens inválidos
   useEffect(() => {
     if (isAuthenticated && !validateToken()) {
@@ -65,6 +91,10 @@ export const useTokenValidation = () => {
     isTokenValid: validateToken(),
     tokenNeedsRefresh: needsRefresh(),
     timeRemaining: getTimeRemaining(),
-    formattedTimeRemaining: formatTimeRemaining()
+    formattedTimeRemaining: formatTimeRemaining(),
+    isTokenExpiringSoon: isTokenExpiringSoon(),
+    isAutoRefreshing: isRefreshing,
+    tokenStatus: tokenStatus(),
+    shouldShowWarning: shouldShowWarning()
   };
 };
