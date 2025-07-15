@@ -41,6 +41,7 @@ export const authService = {
       const refreshToken = this.getRefreshToken();
       if (!refreshToken) {
         console.warn('No refresh token available');
+        this.logout(); // Limpiar tokens si no hay refresh token
         return null;
       }
 
@@ -62,17 +63,24 @@ export const authService = {
       
       // Distinguir entre diferentes tipos de errores
       if (error instanceof AxiosError) {
-        if (error.response?.status === 401) {
-          console.warn('Refresh token expirado o inválido');
-        } else if (error.response?.status === 403) {
-          console.warn('Refresh token revocado');
+        const status = error.response?.status;
+        const message = error.response?.data?.message || 'Error desconocido';
+        
+        if (status === 401) {
+          console.warn('Refresh token expirado o inválido:', message);
+        } else if (status === 403) {
+          console.warn('Refresh token revocado:', message);
         } else {
-          console.warn('Error del servidor al renovar token');
+          console.warn('Error del servidor al renovar token:', message);
         }
-      }
-      
-      // Limpiar tokens solo si es un error de autenticación
-      if (error instanceof AxiosError && [401, 403].includes(error.response?.status || 0)) {
+        
+        // Limpiar tokens solo si es un error de autenticación
+        if ([401, 403].includes(status || 0)) {
+          this.logout();
+        }
+      } else {
+        console.error('Error no HTTP al renovar token:', error);
+        // En caso de error de red u otro, también limpiar
         this.logout();
       }
       

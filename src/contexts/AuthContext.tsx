@@ -94,7 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = authService.getToken();
         if (!token) {
           setIsAuthenticated(false);
-          setIsLoading(false);
           return;
         }
 
@@ -109,8 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Token expirado, intentar renovar
           const refreshed = await refreshToken();
           if (!refreshed) {
-            toast.error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+            console.log('Refresh token falló, redirigiendo al login');
             authService.logout();
+            setIsAuthenticated(false);
           }
         }
       } catch (error) {
@@ -118,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(false);
         authService.logout();
       } finally {
+        // Asegurar que isLoading siempre se ponga en false
         setIsLoading(false);
       }
     };
