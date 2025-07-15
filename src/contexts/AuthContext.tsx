@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { authService } from '../services/auth.service';
 import { RegisterResponse } from '../types/auth';
 import toast from 'react-hot-toast';
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Función para manejar la renovación automática de forma controlada
-  const handleAutoRefresh = async (): Promise<void> => {
+  const handleAutoRefresh = useCallback(async (): Promise<void> => {
     if (isRefreshing) return;
 
     const isValid = checkTokenValidity();
@@ -85,46 +85,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsAuthenticated(false);
       }
     }
-  };
+  }, [isRefreshing, refreshToken, checkTokenValidity]);
 
   // Inicialización mejorada
   useEffect(() => {
+    let isMounted = true;
+    
     const initializeAuth = async () => {
       try {
         const token = authService.getToken();
         if (!token) {
-          setIsAuthenticated(false);
+          if (isMounted) {
+            setIsAuthenticated(false);
+          }
           return;
         }
 
         const isValid = authService.isAuthenticated();
         if (isValid) {
-          setIsAuthenticated(true);
-          // Verificar si necesita renovación pronto
-          if (authService.needsRefreshSoon()) {
-            await handleAutoRefresh();
+          if (isMounted) {
+            setIsAuthenticated(true);
+            // Verificar si necesita renovación pronto
+            if (authService.needsRefreshSoon()) {
+              await handleAutoRefresh();
+            }
           }
         } else {
           // Token expirado, intentar renovar
-          const refreshed = await refreshToken();
-          if (!refreshed) {
-            console.log('Refresh token falló, redirigiendo al login');
-            authService.logout();
-            setIsAuthenticated(false);
+          if (isMounted) {
+            const refreshed = await refreshToken();
+            if (!refreshed) {
+              console.log('Refresh token falló, redirigiendo al login');
+              authService.logout();
+              setIsAuthenticated(false);
+            }
           }
         }
       } catch (error) {
         console.error('Error al inicializar autenticación:', error);
-        setIsAuthenticated(false);
-        authService.logout();
+        if (isMounted) {
+          setIsAuthenticated(false);
+          authService.logout();
+        }
       } finally {
         // Asegurar que isLoading siempre se ponga en false
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     initializeAuth();
-  }, []);
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, [handleAutoRefresh, refreshToken]);
 
   // Verificación periódica mejorada
   useEffect(() => {
@@ -137,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, 5 * 60 * 1000); // 5 minutos
 
     return () => clearInterval(tokenCheckInterval);
-  }, [isAuthenticated, isLoading, isRefreshing]);
+  }, [isAuthenticated, isLoading, isRefreshing, handleAutoRefresh]);
 
   // Verificación cuando la ventana recupera el foco
   useEffect(() => {
@@ -160,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [isAuthenticated, isRefreshing, isLoading]);
+  }, [isAuthenticated, isRefreshing, isLoading, handleAutoRefresh]);
 
   const login = (token: string, refreshToken?: string) => {
     authService.setToken(token);
