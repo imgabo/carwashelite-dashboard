@@ -26,9 +26,9 @@ const QuotationModule = () => {
   // Datos de empresa (editables)
   const [company, setCompany] = useState<Company>({
     name: 'MULTISERVICIOS SYM',
-    address: 'Barcarcel #066',
+    address: 'Ramon Freire 55',
     rut: '77.808.587-9',
-    email: 'contacto@carwashelite.cl',
+    email: 'veruskamaestre@carwashelite.cl',
   });
 
   // Datos de cliente
@@ -122,8 +122,8 @@ const QuotationModule = () => {
       item.description,
       item.quantity,
       item.unitMeasure,
-      `$${item.unit.toLocaleString('es-CL')}`,
-      `$${(item.quantity * item.unit).toLocaleString('es-CL')}`
+      `$${Math.round(item.unit).toLocaleString('es-CL')}`,
+      `$${Math.round(item.quantity * item.unit).toLocaleString('es-CL')}`
     ]);
     autoTable(doc, {
       head: [[
@@ -141,6 +141,24 @@ const QuotationModule = () => {
       styles: { fontSize: 10 },
     });
     const finalY = (doc as any).lastAutoTable?.finalY || tableY + 10;
+    
+    // Agregar subtotal y total con impuestos
+    const summaryY = finalY + 10;
+    doc.setFont('Helvetica', 'bold');
+    doc.text('SUBTOTAL:', 140, summaryY);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(`$${Math.round(netTotal).toLocaleString('es-CL')}`, 180, summaryY, { align: 'right' });
+    
+    doc.setFont('Helvetica', 'bold');
+    doc.text('IVA (19%):', 140, summaryY + 8);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(`$${Math.round(iva).toLocaleString('es-CL')}`, 180, summaryY + 8, { align: 'right' });
+    
+    doc.setFont('Helvetica', 'bold');
+    doc.text('TOTAL:', 140, summaryY + 16);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(`$${Math.round(totalWithIva).toLocaleString('es-CL')}`, 180, summaryY + 16, { align: 'right' });
+    
     doc.save('cotizacion.pdf');
   };
 
@@ -228,7 +246,7 @@ const QuotationModule = () => {
                 <td className="p-2"><input type="number" min="1" value={item.quantity} onChange={e => handleItemChange(idx, 'quantity', e.target.value)} className="w-16 border rounded px-1 dark:bg-gray-700 dark:text-white" /></td>
                 <td className="p-2"><input type="text" value={item.unitMeasure} onChange={e => handleItemChange(idx, 'unitMeasure', e.target.value)} className="w-24 border rounded px-1 dark:bg-gray-700 dark:text-white" /></td>
                 <td className="p-2"><input type="number" min="0" value={item.unit} onChange={e => handleItemChange(idx, 'unit', e.target.value)} className="w-24 border rounded px-1 dark:bg-gray-700 dark:text-white" /></td>
-                <td className="p-2 dark:text-white">${(item.quantity * item.unit).toLocaleString('es-CL')}</td>
+                <td className="p-2 dark:text-white">${Math.round(item.quantity * item.unit).toLocaleString('es-CL')}</td>
                 <td className="p-2">
                   {items.length > 1 && (
                     <button type="button" onClick={() => removeItem(idx)} className="text-red-600 font-bold">X</button>
@@ -239,9 +257,9 @@ const QuotationModule = () => {
           </tbody>
         </table>
         <div className="flex flex-col items-end gap-1">
-          <div className="dark:text-white">Neto: <b>${netTotal.toLocaleString('es-CL')}</b></div>
-          <div className="dark:text-white">IVA (19%): <b>${iva.toLocaleString('es-CL')}</b></div>
-          <div className="dark:text-white">Total con IVA: <b>${totalWithIva.toLocaleString('es-CL')}</b></div>
+          <div className="dark:text-white">Neto: <b>${Math.round(netTotal).toLocaleString('es-CL')}</b></div>
+          <div className="dark:text-white">IVA (19%): <b>${Math.round(iva).toLocaleString('es-CL')}</b></div>
+          <div className="dark:text-white">Total con IVA: <b>${Math.round(totalWithIva).toLocaleString('es-CL')}</b></div>
         </div>
       </div>
       <div className="flex justify-end">
