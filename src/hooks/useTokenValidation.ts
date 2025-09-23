@@ -2,7 +2,22 @@ import { useEffect, useCallback } from 'react';
 import { authService } from '../services/auth.service';
 import { useAuth } from '../contexts/AuthContext';
 
-export const useTokenValidation = () => {
+interface UseTokenValidationReturn {
+  validateToken: () => boolean;
+  needsRefresh: () => boolean;
+  getTimeRemaining: () => number;
+  formatTimeRemaining: () => string;
+  isTokenValid: boolean;
+  tokenNeedsRefresh: boolean;
+  timeRemaining: number;
+  formattedTimeRemaining: string;
+  isTokenExpiringSoon: boolean;
+  isAutoRefreshing: boolean;
+  tokenStatus: 'healthy' | 'warning' | 'critical' | 'expired';
+  shouldShowWarning: boolean;
+}
+
+export const useTokenValidation = (): UseTokenValidationReturn => {
   const { isAuthenticated, logout, isRefreshing } = useAuth();
 
   // Función para validar token de manera segura
