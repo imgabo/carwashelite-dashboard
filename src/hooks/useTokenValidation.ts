@@ -3,10 +3,12 @@ import { authService } from '../services/auth.service';
 import { useAuth } from '../contexts/AuthContext';
 
 interface UseTokenValidationReturn {
+  // Funciones
   validateToken: () => boolean;
   needsRefresh: () => boolean;
   getTimeRemaining: () => number;
   formatTimeRemaining: () => string;
+  // Valores directos (computados)
   isTokenValid: boolean;
   tokenNeedsRefresh: boolean;
   timeRemaining: number;
