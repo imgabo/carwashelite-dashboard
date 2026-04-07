@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Sale } from '../types/sale';
 import { Client } from '../types/client';
 import { Service } from '../types/service';
@@ -48,7 +48,6 @@ const SaleRegistration = () => {
   const [saleToDelete, setSaleToDelete] = useState<Sale | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [tableSearch, setTableSearch] = useState('');
-  const [showAllRows, setShowAllRows] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exportRange, setExportRange] = useState<'1m' | '3m' | '6m' | 'custom'>('1m');
   const [customStart, setCustomStart] = useState('');
@@ -294,42 +293,47 @@ const SaleRegistration = () => {
     setSaleToDelete(null);
   };
 
-  // Filtro de ventas para la tabla
-  const filteredSales = sales.filter((sale) => {
+  // Filtro de ventas memorizado — solo recalcula cuando cambia sales o tableSearch
+  const filteredSales = useMemo(() => {
     const search = tableSearch.toLowerCase();
-    const cliente = `${sale.cliente?.name ?? ''} ${sale.cliente?.apellido ?? ''}`.toLowerCase();
-    const patente = sale.patente?.toLowerCase() ?? '';
-    const sucursal = sale.sucursal?.nombre?.toLowerCase() ?? '';
-    const servicios = sale.servicios?.map(s => s.nombre).join(' ').toLowerCase() ?? '';
-    const total = Number(sale.total).toLocaleString('es-CL');
-    const pagado = sale.pagado ? 'pagado' : 'no pagado';
-    const fecha = (() => {
-      const dateStr = sale.createdAt || sale.fecha;
-      const date = dateStr ? new Date(dateStr) : null;
-      return date && !isNaN(date.getTime())
-        ? date.toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })
-        : '-';
-    })().toLowerCase();
-    return (
-      cliente.includes(search) ||
-      patente.includes(search) ||
-      sucursal.includes(search) ||
-      servicios.includes(search) ||
-      total.includes(search) ||
-      pagado.includes(search) ||
-      fecha.includes(search)
-    );
-  });
+    return sales.filter((sale) => {
+      const cliente = `${sale.cliente?.name ?? ''} ${sale.cliente?.apellido ?? ''}`.toLowerCase();
+      const patente = sale.patente?.toLowerCase() ?? '';
+      const sucursal = sale.sucursal?.nombre?.toLowerCase() ?? '';
+      const servicios = sale.servicios?.map(s => s.nombre).join(' ').toLowerCase() ?? '';
+      const total = Number(sale.total).toLocaleString('es-CL');
+      const pagado = sale.pagado ? 'pagado' : 'no pagado';
+      const fecha = (() => {
+        const dateStr = sale.createdAt || sale.fecha;
+        const date = dateStr ? new Date(dateStr) : null;
+        return date && !isNaN(date.getTime())
+          ? date.toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' })
+          : '-';
+      })().toLowerCase();
+      return (
+        cliente.includes(search) ||
+        patente.includes(search) ||
+        sucursal.includes(search) ||
+        servicios.includes(search) ||
+        total.includes(search) ||
+        pagado.includes(search) ||
+        fecha.includes(search)
+      );
+    });
+  }, [sales, tableSearch]);
 
-  // Paginación
+  // Paginación derivada — sin estado redundante
   const totalPages = Math.ceil(filteredSales.length / pageSize);
-  const paginatedSales = filteredSales.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const safePage = Math.min(currentPage, Math.max(1, totalPages));
+  const paginatedSales = filteredSales.slice((safePage - 1) * pageSize, safePage * pageSize);
 
-  useEffect(() => {
-    // Si el filtro cambia y la página actual queda fuera de rango, vuelve a la primera página
-    if (currentPage > totalPages) setCurrentPage(1);
-    // eslint-disable-next-line
-  }, [filteredSales.length]);
+  // Genera array de páginas a mostrar con elipsis para muchas páginas
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (safePage <= 4) return [1, 2, 3, 4, 5, '...', totalPages];
+    if (safePage >= totalPages - 3) return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    return [1, '...', safePage - 1, safePage, safePage + 1, '...', totalPages];
+  }, [totalPages, safePage]);
 
   // Calcula fechas según rango
   const getExportDates = () => {
@@ -476,7 +480,7 @@ const SaleRegistration = () => {
           <input
             type="text"
             value={tableSearch}
-            onChange={e => setTableSearch(e.target.value)}
+            onChange={e => { setTableSearch(e.target.value); setCurrentPage(1); }}
             placeholder="Buscar en ventas..."
             className="w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           />
@@ -488,8 +492,7 @@ const SaleRegistration = () => {
         )}
         {/* Filtro de búsqueda */}
   
-        <div className={`overflow-x-auto ${filteredSales.length > 4 ? 'max-h-[320px]' : ''} min-h-[320px]`}
-             style={filteredSales.length > 4 ? {overflowY: 'auto'} : {}}>
+        <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
@@ -607,25 +610,69 @@ const SaleRegistration = () => {
           </table>
         </div>
         {/* Paginación */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 py-4">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
-            >
-              Anterior
-            </button>
-            <span className="text-gray-700 dark:text-gray-200">Página {currentPage} de {totalPages}</span>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
-            >
-              Siguiente
-            </button>
-          </div>
-        )}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {filteredSales.length === 0
+              ? 'Sin resultados'
+              : `Mostrando ${(safePage - 1) * pageSize + 1}–${Math.min(safePage * pageSize, filteredSales.length)} de ${filteredSales.length} ventas`}
+          </p>
+          {totalPages > 1 && (
+            <nav className="flex items-center gap-1" aria-label="Paginación">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={safePage === 1}
+                className="px-2 py-1 rounded text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Primera página"
+              >
+                «
+              </button>
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                className="px-3 py-1 rounded text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Página anterior"
+              >
+                ‹
+              </button>
+              {pageNumbers.map((page, idx) =>
+                page === '...' ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 py-1 text-sm text-gray-500 dark:text-gray-400">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(Number(page))}
+                    aria-current={safePage === page ? 'page' : undefined}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      safePage === page
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                className="px-3 py-1 rounded text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Página siguiente"
+              >
+                ›
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={safePage === totalPages}
+                className="px-2 py-1 rounded text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Última página"
+              >
+                »
+              </button>
+            </nav>
+          )}
+        </div>
       </div>
 
       {/* Registration Form */}
