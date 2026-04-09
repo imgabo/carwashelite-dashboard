@@ -166,7 +166,7 @@ const BranchRegistration = () => {
         }}
       />
       {/* Branches Table */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+      <div className="card-executive overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Sucursales Registradas</h2>
         </div>
@@ -213,8 +213,8 @@ const BranchRegistration = () => {
       </div>
 
       {/* Registration Form */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">
+      <div className="card-executive p-6">
+        <h2 className="section-title mb-6">
           Registro de Sucursal
         </h2>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -229,7 +229,7 @@ const BranchRegistration = () => {
                 name="nombre"
                 value={formData.nombre}
                 onChange={handleChange}
-                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                className="input-elevated"
                 required
                 disabled={isLoading}
               />
@@ -245,7 +245,7 @@ const BranchRegistration = () => {
                 name="direccion"
                 value={formData.direccion}
                 onChange={handleChange}
-                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                className="input-elevated"
                 required
                 disabled={isLoading}
               />
@@ -255,7 +255,7 @@ const BranchRegistration = () => {
           <div className="pt-4">
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="btn-primary w-full"
               disabled={isLoading}
             >
               {isLoading ? 'Registrando...' : 'Registrar Sucursal'}
@@ -283,7 +283,7 @@ const BranchRegistration = () => {
                   name="nombre"
                   value={editFormData.nombre}
                   onChange={handleEditChange}
-                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  className="input-elevated"
                   required
                 />
               </div>
@@ -297,7 +297,7 @@ const BranchRegistration = () => {
                   name="direccion"
                   value={editFormData.direccion}
                   onChange={handleEditChange}
-                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  className="input-elevated"
                   required
                 />
               </div>
@@ -305,13 +305,13 @@ const BranchRegistration = () => {
                 <button
                   type="button"
                   onClick={handleEditCancel}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                  className="btn-secondary"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                  className="btn-primary"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Guardando...' : 'Guardar Cambios'}
@@ -337,13 +337,13 @@ const BranchRegistration = () => {
             <div className="flex justify-end space-x-4">
               <button
                 onClick={handleDeleteCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                className="btn-secondary"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+                className="btn-danger"
                 disabled={isLoading}
               >
                 {isLoading ? 'Eliminando...' : 'Eliminar'}

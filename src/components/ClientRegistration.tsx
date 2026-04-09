@@ -207,7 +207,7 @@ const ClientRegistration = () => {
   return (
     <div className="space-y-8">
       {/* Clients Table */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+      <div className="card-executive overflow-hidden">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Clientes Registrados</h2>
         </div>
@@ -272,7 +272,7 @@ const ClientRegistration = () => {
             <div className="flex justify-end space-x-4">
               <button
                 onClick={handleDeleteCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                className="btn-secondary"
               >
                 Cancelar
               </button>
@@ -304,7 +304,7 @@ const ClientRegistration = () => {
                   name="name"
                   value={editFormData.name || ''}
                   onChange={handleEditChange}
-                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  className="input-elevated"
                   required
                 />
               </div>
@@ -316,7 +316,7 @@ const ClientRegistration = () => {
                   name="apellido"
                   value={editFormData.apellido || ''}
                   onChange={handleEditChange}
-                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  className="input-elevated"
                   required
                 />
               </div>
@@ -328,7 +328,7 @@ const ClientRegistration = () => {
                   name="telefono"
                   value={editFormData.telefono || ''}
                   onChange={handleEditChange}
-                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  className="input-elevated"
                   required
                 />
               </div>
@@ -340,7 +340,7 @@ const ClientRegistration = () => {
                   name="empresaNombre"
                   value={editFormData.empresaNombre || (editFormData.empresaId ? companies.find(c => c.id === editFormData.empresaId)?.name : '') || ''}
                   onChange={handleEditCompanySearch}
-                  className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  className="input-elevated"
                   placeholder="Buscar empresa..."
                 />
                 {editFormData.empresaNombre && companies.filter(company => company.name.toLowerCase().includes((editFormData.empresaNombre || '').toLowerCase())).length > 0 && (
@@ -361,13 +361,13 @@ const ClientRegistration = () => {
                 <button
                   type="button"
                   onClick={() => setClientToEdit(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                  className="btn-secondary"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                  className="btn-primary"
                 >
                   Guardar Cambios
                 </button>
@@ -378,8 +378,8 @@ const ClientRegistration = () => {
       )}
 
       {/* Registration Form */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">Registro de Cliente</h2>
+      <div className="card-executive p-6">
+        <h2 className="section-title mb-6">Registro de Cliente</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -392,7 +392,7 @@ const ClientRegistration = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                className="input-elevated"
                 required
               />
             </div>
@@ -407,7 +407,7 @@ const ClientRegistration = () => {
                 name="apellido"
                 value={formData.apellido}
                 onChange={handleChange}
-                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                className="input-elevated"
                 required
               />
             </div>
@@ -422,7 +422,7 @@ const ClientRegistration = () => {
                 name="telefono"
                 value={formData.telefono}
                 onChange={handleChange}
-                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                className="input-elevated"
                 required
               />
             </div>
@@ -436,7 +436,7 @@ const ClientRegistration = () => {
                 id="empresa"
                 value={searchTerm}
                 onChange={handleCompanySearch}
-                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                className="input-elevated"
                 placeholder="Buscar empresa..."
               />
               {showSuggestions && searchTerm && filteredCompanies.length > 0 && (
@@ -458,7 +458,7 @@ const ClientRegistration = () => {
           <div className="pt-4">
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="btn-primary w-full"
             >
               Registrar Cliente
             </button>

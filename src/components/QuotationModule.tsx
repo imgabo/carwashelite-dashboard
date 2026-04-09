@@ -1,6 +1,7 @@
 import React, { useState, ChangeEvent } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { FaBuilding, FaUser, FaPhone, FaEnvelope, FaMapMarkerAlt, FaIdCard, FaCalendarAlt, FaTag, FaCreditCard, FaTrash, FaPlus } from 'react-icons/fa';
 
 const IVA_RATE = 0.19;
 
@@ -163,108 +164,289 @@ const QuotationModule = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 shadow rounded-lg p-6 space-y-6">
-      <h2 className="text-2xl font-bold mb-4 dark:text-white">Generar Cotización</h2>
-      {/* Datos empresa */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium dark:text-white">Nombre empresa</label>
-          <input name="name" value={company.name} onChange={handleCompanyChange} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4 sm:px-6 lg:px-8 py-8">
+      {/* Decorative background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 -right-40 sm:-right-32 w-72 sm:w-96 h-72 sm:h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute bottom-0 -left-40 sm:-left-32 w-72 sm:w-96 h-72 sm:h-96 bg-cyan-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+      </div>
+
+      {/* Content */}
+      <div className="relative max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent mb-2">
+            Generar Cotización
+          </h1>
+          <p className="text-slate-400 text-lg">Crea profesionales y detalladas cotizaciones para tus clientes</p>
         </div>
-        <div>
-          <label className="block text-sm font-medium dark:text-white">Dirección</label>
-          <input name="address" value={company.address} onChange={handleCompanyChange} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium dark:text-white">RUT</label>
-          <input name="rut" value={company.rut} onChange={handleCompanyChange} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium dark:text-white">Correo</label>
-          <input name="email" value={company.email} onChange={handleCompanyChange} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
+
+        {/* Main Form Container */}
+        <div className="bg-slate-800 bg-opacity-40 backdrop-blur-2xl border border-slate-700 border-opacity-50 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-8">
+          
+          {/* DATOS DE EMPRESA */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-700">
+              <FaBuilding className="text-blue-400 text-xl" />
+              <h2 className="text-2xl font-bold text-white">Datos de la Empresa</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[
+                { name: 'name', label: 'Nombre empresa', icon: FaBuilding },
+                { name: 'address', label: 'Dirección', icon: FaMapMarkerAlt },
+                { name: 'rut', label: 'RUT', icon: FaIdCard },
+                { name: 'email', label: 'Correo', icon: FaEnvelope },
+              ].map(({ name, label, icon: Icon }) => (
+                <div key={name} className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-200">{label}</label>
+                  <div className="relative">
+                    <Icon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-base" />
+                    <input
+                      name={name}
+                      value={company[name as keyof Company]}
+                      onChange={handleCompanyChange}
+                      className="w-full bg-slate-700 bg-opacity-50 border border-slate-600 rounded-lg py-3 pl-11 pr-4 text-slate-100 placeholder-slate-500 outline-none transition-all duration-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30 hover:bg-slate-600 hover:bg-opacity-60"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* DATOS DE CLIENTE */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-700">
+              <FaUser className="text-cyan-400 text-xl" />
+              <h2 className="text-2xl font-bold text-white">Datos del Cliente</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                { name: 'name', label: 'Nombre cliente', icon: FaUser },
+                { name: 'phone', label: 'Teléfono', icon: FaPhone },
+                { name: 'email', label: 'Email', icon: FaEnvelope },
+              ].map(({ name, label, icon: Icon }) => (
+                <div key={name} className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-200">{label}</label>
+                  <div className="relative">
+                    <Icon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-base" />
+                    <input
+                      name={name}
+                      value={client[name as keyof Client]}
+                      onChange={handleClientChange}
+                      className="w-full bg-slate-700 bg-opacity-50 border border-slate-600 rounded-lg py-3 pl-11 pr-4 text-slate-100 placeholder-slate-500 outline-none transition-all duration-200 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400 focus:ring-opacity-30 hover:bg-slate-600 hover:bg-opacity-60"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* DETALLES DE COTIZACIÓN */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-700">
+              <FaTag className="text-green-400 text-xl" />
+              <h2 className="text-2xl font-bold text-white">Detalles de la Cotización</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {[
+                { state: quotationNumber, setState: setQuotationNumber, label: 'Cotización N°', icon: FaTag },
+                { state: clientRUT, setState: setClientRUT, label: 'RUT Cliente', icon: FaIdCard },
+                { state: date, setState: setDate, label: 'Fecha', icon: FaCalendarAlt, type: 'date' },
+                { state: validUntil, setState: setValidUntil, label: 'Válido hasta', icon: FaCalendarAlt, type: 'date' },
+                { state: paymentType, setState: setPaymentType, label: 'Tipo de pago', icon: FaCreditCard },
+              ].map((field, idx) => (
+                <div key={idx} className="space-y-2">
+                  <label className="block text-sm font-medium text-slate-200">{field.label}</label>
+                  <div className="relative">
+                    <field.icon className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 text-base" />
+                    <input
+                      type={field.type || 'text'}
+                      value={field.state}
+                      onChange={e => field.setState(e.target.value)}
+                      className="w-full bg-slate-700 bg-opacity-50 border border-slate-600 rounded-lg py-3 pl-11 pr-4 text-slate-100 placeholder-slate-500 outline-none transition-all duration-200 focus:border-green-400 focus:ring-2 focus:ring-green-400 focus:ring-opacity-30 hover:bg-slate-600 hover:bg-opacity-60 text-sm"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* PRODUCTOS/SERVICIOS */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-700">
+              <div className="flex items-center gap-3">
+                <FaTag className="text-purple-400 text-xl" />
+                <h2 className="text-2xl font-bold text-white">Productos / Servicios</h2>
+              </div>
+              <button
+                type="button"
+                onClick={addItem}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95"
+              >
+                <FaPlus className="text-sm" /> Agregar Línea
+              </button>
+            </div>
+            
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-700 bg-opacity-50 border-b border-slate-600">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-slate-200">Concepto</th>
+                    <th className="px-4 py-3 text-center text-sm font-semibold text-slate-200">Cantidad</th>
+                    <th className="px-4 py-3 text-center text-sm font-semibold text-slate-200">Unidad</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-200">Valor Unitario</th>
+                    <th className="px-4 py-3 text-right text-sm font-semibold text-slate-200">Subtotal</th>
+                    <th className="px-4 py-3 text-center text-sm font-semibold text-slate-200">Acción</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700">
+                  {items.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-700 hover:bg-opacity-30 transition-colors duration-200">
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          value={item.description}
+                          onChange={e => handleItemChange(idx, 'description', e.target.value)}
+                          placeholder="Descripción del servicio"
+                          className="w-full bg-slate-700 bg-opacity-50 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 outline-none transition-all duration-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30 text-sm"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={e => handleItemChange(idx, 'quantity', e.target.value)}
+                          className="w-20 bg-slate-700 bg-opacity-50 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 outline-none transition-all duration-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30 text-sm text-center"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="text"
+                          value={item.unitMeasure}
+                          onChange={e => handleItemChange(idx, 'unitMeasure', e.target.value)}
+                          placeholder="Ej: hrs, kg, unidad"
+                          className="w-24 bg-slate-700 bg-opacity-50 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 outline-none transition-all duration-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30 text-sm text-center"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.unit}
+                          onChange={e => handleItemChange(idx, 'unit', e.target.value)}
+                          className="w-28 bg-slate-700 bg-opacity-50 border border-slate-600 rounded-lg px-3 py-2 text-slate-100 outline-none transition-all duration-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400 focus:ring-opacity-30 text-sm text-right"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-slate-100 font-semibold">
+                          ${Math.round(item.quantity * item.unit).toLocaleString('es-CL')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {items.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeItem(idx)}
+                            className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500 hover:bg-opacity-20 rounded-lg transition-colors duration-200"
+                            title="Eliminar línea"
+                          >
+                            <FaTrash className="text-sm" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Resumen */}
+            <div className="pt-6 border-t border-slate-700">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* NETO */}
+                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 hover:border-blue-400 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/20 p-4 sm:p-6 cursor-default hover:-translate-y-1">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">Subtotal</p>
+                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                    </div>
+                    <p className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-blue-300 to-blue-400 bg-clip-text text-transparent leading-tight tracking-tight tabular-nums">
+                      ${Math.round(netTotal).toLocaleString('es-CL')}
+                    </p>
+                    <div className="mt-2 h-1 w-8 bg-gradient-to-r from-blue-500 to-blue-400 rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                </div>
+
+                {/* IVA */}
+                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 hover:border-cyan-400 transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/20 p-4 sm:p-6 cursor-default hover:-translate-y-1">
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-blue-600 opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-slate-400 text-sm font-semibold tracking-wide uppercase">IVA 19%</p>
+                      <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
+                    </div>
+                    <p className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-cyan-300 to-cyan-400 bg-clip-text text-transparent leading-tight tracking-tight tabular-nums">
+                      ${Math.round(iva).toLocaleString('es-CL')}
+                    </p>
+                    <div className="mt-2 h-1 w-8 bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                </div>
+
+                {/* TOTAL */}
+                <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-600 border border-blue-400 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/40 p-4 sm:p-6 cursor-default hover:-translate-y-1 md:col-span-1 col-span-1">
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-10 bg-white transition-opacity duration-300"></div>
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-white opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity duration-300"></div>
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-blue-100 text-xs sm:text-sm font-bold tracking-widest uppercase">Total Final</p>
+                      <svg className="w-5 h-5 text-blue-100 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12zm1-11a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <p className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-none mb-2 drop-shadow-lg tracking-tight tabular-nums" style={{textShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'}}>
+                      ${Math.round(totalWithIva).toLocaleString('es-CL')}
+                    </p>
+                    <div className="flex items-center gap-2 text-blue-100 text-xs font-semibold opacity-80">
+                      <span className="w-2 h-2 bg-blue-200 rounded-full"></span>
+                      Incluye IVA
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <div className="flex justify-end pt-4">
+            <button
+              onClick={generatePDF}
+              disabled={!client.name || items.some(i => !i.description || i.unit === 0)}
+              className="w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:from-gray-600 disabled:to-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+            >
+              📄 Generar PDF
+            </button>
+          </div>
         </div>
       </div>
-      {/* Datos cliente */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium dark:text-white">Nombre cliente</label>
-          <input name="name" value={client.name} onChange={handleClientChange} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium dark:text-white">Teléfono</label>
-          <input name="phone" value={client.phone} onChange={handleClientChange} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium dark:text-white">Email</label>
-          <input name="email" value={client.email} onChange={handleClientChange} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
-        </div>
-      </div>
-      {/* 2. MODIFICA EL FORMULARIO PARA LOS NUEVOS CAMPOS: */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div>
-          <label className="block text-sm font-medium dark:text-white">Cotización N°</label>
-          <input value={quotationNumber} onChange={e => setQuotationNumber(e.target.value)} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium dark:text-white">RUT Cliente</label>
-          <input value={clientRUT} onChange={e => setClientRUT(e.target.value)} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium dark:text-white">Fecha</label>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium dark:text-white">Válido hasta</label>
-          <input type="date" value={validUntil} onChange={e => setValidUntil(e.target.value)} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium dark:text-white">Tipo de pago</label>
-          <input value={paymentType} onChange={e => setPaymentType(e.target.value)} className="w-full border rounded px-2 py-1 dark:bg-gray-700 dark:text-white" />
-        </div>
-      </div>
-      {/* Productos/servicios */}
-      <div>
-        <div className="flex justify-between items-center mb-2">
-          <label className="block text-sm font-medium dark:text-white">Productos / Servicios</label>
-          <button type="button" onClick={addItem} className="px-3 py-1 bg-green-600 text-white rounded text-sm">+ Agregar</button>
-        </div>
-        <table className="w-full border rounded mb-2">
-          <thead>
-            <tr className="bg-gray-100 dark:bg-gray-700">
-              <th className="p-2 dark:text-white">Concepto del servicio</th>
-              <th className="p-2 dark:text-white">Cantidad</th>
-              <th className="p-2 dark:text-white">Unidad de medida</th>
-              <th className="p-2 dark:text-white">Valor unitario</th>
-              <th className="p-2 dark:text-white">Valor total</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, idx) => (
-              <tr key={idx}>
-                <td className="p-2"><input type="text" value={item.description} onChange={e => handleItemChange(idx, 'description', e.target.value)} className="w-full border rounded px-1 dark:bg-gray-700 dark:text-white" /></td>
-                <td className="p-2"><input type="number" min="1" value={item.quantity} onChange={e => handleItemChange(idx, 'quantity', e.target.value)} className="w-16 border rounded px-1 dark:bg-gray-700 dark:text-white" /></td>
-                <td className="p-2"><input type="text" value={item.unitMeasure} onChange={e => handleItemChange(idx, 'unitMeasure', e.target.value)} className="w-24 border rounded px-1 dark:bg-gray-700 dark:text-white" /></td>
-                <td className="p-2"><input type="number" min="0" value={item.unit} onChange={e => handleItemChange(idx, 'unit', e.target.value)} className="w-24 border rounded px-1 dark:bg-gray-700 dark:text-white" /></td>
-                <td className="p-2 dark:text-white">${Math.round(item.quantity * item.unit).toLocaleString('es-CL')}</td>
-                <td className="p-2">
-                  {items.length > 1 && (
-                    <button type="button" onClick={() => removeItem(idx)} className="text-red-600 font-bold">X</button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="flex flex-col items-end gap-1">
-          <div className="dark:text-white">Neto: <b>${Math.round(netTotal).toLocaleString('es-CL')}</b></div>
-          <div className="dark:text-white">IVA (19%): <b>${Math.round(iva).toLocaleString('es-CL')}</b></div>
-          <div className="dark:text-white">Total con IVA: <b>${Math.round(totalWithIva).toLocaleString('es-CL')}</b></div>
-        </div>
-      </div>
-      <div className="flex justify-end">
-        <button onClick={generatePDF} className="px-6 py-2 bg-indigo-600 text-white rounded font-semibold hover:bg-indigo-700">Generar PDF</button>
-      </div>
+
+      <style>{`
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+      `}</style>
     </div>
   );
 };

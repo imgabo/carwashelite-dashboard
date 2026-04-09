@@ -8,13 +8,16 @@ import { clientService } from '../services/client.service';
 import { serviceService } from '../services/service.service';
 import { branchService } from '../services/branch.service';
 import toast from 'react-hot-toast';
-import { FaTrash } from 'react-icons/fa';
+import { FaTrash, FaFileExcel, FaSearch, FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
 
 interface CustomService {
   nombre: string;
   precio: number;
   descripcion: string;
 }
+
+type SortField = 'cliente' | 'patente' | 'sucursal' | 'total' | 'fecha' | 'pagado';
+type SortDirection = 'asc' | 'desc';
 
 const SaleRegistration = () => {
   const [formData, setFormData] = useState({
@@ -54,7 +57,11 @@ const SaleRegistration = () => {
   const [customEnd, setCustomEnd] = useState('');
   const [isExporting, setIsExporting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
+  const [branchFilter, setBranchFilter] = useState<number | 'all'>('all');
+  const [sortField, setSortField] = useState<SortField>('fecha');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   useEffect(() => {
     fetchSales();
@@ -274,6 +281,30 @@ const SaleRegistration = () => {
     setSaleToDelete(sale);
   };
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+      return;
+    }
+    setSortField(field);
+    setSortDirection(field === 'fecha' ? 'desc' : 'asc');
+  };
+
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <FaSort className="w-3 h-3 text-gray-400" />;
+    }
+    return sortDirection === 'asc'
+      ? <FaSortUp className="w-3 h-3 text-blue-600 dark:text-cyan-400" />
+      : <FaSortDown className="w-3 h-3 text-blue-600 dark:text-cyan-400" />;
+  };
+
+  const formatSaleDate = (sale: Sale) => {
+    const dateStr = sale.createdAt || sale.fecha;
+    const date = dateStr ? new Date(dateStr) : null;
+    return date && !isNaN(date.getTime()) ? date.toLocaleDateString() : '-';
+  };
+
   const handleDeleteConfirm = async () => {
     if (!saleToDelete) return;
     setIsDeleting(true);
@@ -293,10 +324,14 @@ const SaleRegistration = () => {
     setSaleToDelete(null);
   };
 
-  // Filtro de ventas memorizado — solo recalcula cuando cambia sales o tableSearch
+  // Filtro + ordenación de ventas memorizado
   const filteredSales = useMemo(() => {
     const search = tableSearch.toLowerCase();
-    return sales.filter((sale) => {
+    const filtered = sales.filter((sale) => {
+      if (statusFilter === 'paid' && !sale.pagado) return false;
+      if (statusFilter === 'unpaid' && sale.pagado) return false;
+      if (branchFilter !== 'all' && sale.sucursal?.id !== branchFilter) return false;
+
       const cliente = `${sale.cliente?.name ?? ''} ${sale.cliente?.apellido ?? ''}`.toLowerCase();
       const patente = sale.patente?.toLowerCase() ?? '';
       const sucursal = sale.sucursal?.nombre?.toLowerCase() ?? '';
@@ -320,7 +355,44 @@ const SaleRegistration = () => {
         fecha.includes(search)
       );
     });
-  }, [sales, tableSearch]);
+
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case 'cliente': {
+          const aCliente = `${a.cliente?.name ?? ''} ${a.cliente?.apellido ?? ''}`.toLowerCase();
+          const bCliente = `${b.cliente?.name ?? ''} ${b.cliente?.apellido ?? ''}`.toLowerCase();
+          comparison = aCliente.localeCompare(bCliente);
+          break;
+        }
+        case 'patente':
+          comparison = (a.patente ?? '').localeCompare(b.patente ?? '');
+          break;
+        case 'sucursal':
+          comparison = (a.sucursal?.nombre ?? '').localeCompare(b.sucursal?.nombre ?? '');
+          break;
+        case 'total':
+          comparison = Number(a.total) - Number(b.total);
+          break;
+        case 'pagado':
+          comparison = Number(a.pagado) - Number(b.pagado);
+          break;
+        case 'fecha': {
+          const aDate = a.createdAt || a.fecha;
+          const bDate = b.createdAt || b.fecha;
+          const aTs = aDate ? new Date(aDate).getTime() : 0;
+          const bTs = bDate ? new Date(bDate).getTime() : 0;
+          comparison = aTs - bTs;
+          break;
+        }
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    return sorted;
+  }, [sales, tableSearch, statusFilter, branchFilter, sortField, sortDirection]);
 
   // Paginación derivada — sin estado redundante
   const totalPages = Math.ceil(filteredSales.length / pageSize);
@@ -413,19 +485,21 @@ const SaleRegistration = () => {
     <div className="space-y-3">
       {/* Sales Table */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex  justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Ventas Registradas</h2>
-          <div className="relative">
-            <button
-              onClick={() => setShowExportMenu((v) => !v)}
-              className="px-4 py-2 text-sm font-medium rounded bg-green-600 hover:bg-green-700 text-white shadow"
-            >
-              Exportar Excel
-            </button>
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Ventas Registradas</h2>
+            <div className="relative">
+              <button
+                onClick={() => setShowExportMenu((v) => !v)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-md hover:shadow-lg transition-all"
+              >
+                <FaFileExcel className="w-4 h-4" />
+                Exportar Excel
+              </button>
             {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg z-20 p-4">
-                <div className="mb-2 font-semibold text-gray-700 dark:text-gray-200">Rango a exportar:</div>
-                <div className="space-y-2 text-white">
+              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 p-4">
+                <div className="mb-2 font-semibold text-gray-700 dark:text-gray-200">Rango a exportar</div>
+                <div className="space-y-2 text-gray-700 dark:text-gray-200 text-sm">
                   <label className="flex items-center gap-2">
                     <input type="radio" name="exportRange" checked={exportRange === '1m'} onChange={() => setExportRange('1m')} />
                     Último mes
@@ -469,7 +543,7 @@ const SaleRegistration = () => {
                   <button
                     onClick={handleExport}
                     disabled={isExporting || (exportRange === 'custom' && (!customStart || !customEnd))}
-                    className="px-3 py-1 text-sm rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                    className="px-3 py-1.5 text-sm rounded bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white disabled:opacity-50"
                   >
                     {isExporting ? 'Exportando...' : 'Exportar'}
                   </button>
@@ -477,13 +551,69 @@ const SaleRegistration = () => {
               </div>
             )}
           </div>
-          <input
-            type="text"
-            value={tableSearch}
-            onChange={e => { setTableSearch(e.target.value); setCurrentPage(1); }}
-            placeholder="Buscar en ventas..."
-            className="w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
+            <div className="xl:col-span-2 relative">
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                value={tableSearch}
+                onChange={e => { setTableSearch(e.target.value); setCurrentPage(1); }}
+                placeholder="Buscar en ventas..."
+                className="w-full pl-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value as 'all' | 'paid' | 'unpaid'); setCurrentPage(1); }}
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            >
+              <option value="all">Todos los estados</option>
+              <option value="paid">Pagado</option>
+              <option value="unpaid">No pagado</option>
+            </select>
+
+            <select
+              value={branchFilter}
+              onChange={e => { setBranchFilter(e.target.value === 'all' ? 'all' : Number(e.target.value)); setCurrentPage(1); }}
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            >
+              <option value="all">Todas las sucursales</option>
+              {branches.map((branch) => (
+                <option key={`filter-branch-${branch.id}`} value={branch.id}>{branch.nombre}</option>
+              ))}
+            </select>
+
+            <select
+              value={sortField}
+              onChange={e => setSortField(e.target.value as SortField)}
+              className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            >
+              <option value="fecha">Ordenar por Fecha</option>
+              <option value="cliente">Ordenar por Cliente</option>
+              <option value="sucursal">Ordenar por Sucursal</option>
+              <option value="total">Ordenar por Total</option>
+              <option value="patente">Ordenar por Patente</option>
+              <option value="pagado">Ordenar por Estado</option>
+            </select>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSortDirection('asc')}
+                className={`flex-1 px-3 py-2 rounded-md text-sm border transition-colors ${sortDirection === 'asc' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`}
+              >
+                Asc
+              </button>
+              <button
+                onClick={() => setSortDirection('desc')}
+                className={`flex-1 px-3 py-2 rounded-md text-sm border transition-colors ${sortDirection === 'desc' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600'}`}
+              >
+                Desc
+              </button>
+            </div>
+          </div>
         </div>
         {error && (
           <div className="p-4 bg-red-100 border border-red-400 text-red-700" role="alert">
@@ -492,17 +622,125 @@ const SaleRegistration = () => {
         )}
         {/* Filtro de búsqueda */}
   
-        <div className="overflow-x-auto">
+        <div className="md:hidden space-y-3 p-3">
+          {filteredSales.length === 0 ? (
+            <div className="text-center py-10 text-gray-500 dark:text-gray-400 text-base bg-gray-50 dark:bg-gray-700/40 rounded-lg border border-gray-200 dark:border-gray-700">
+              No hay ventas registradas
+            </div>
+          ) : (
+            paginatedSales.map((sale) => (
+              <article
+                key={`mobile-${sale.id}`}
+                className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-4 space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Cliente</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{`${sale.cliente.name} ${sale.cliente.apellido}`}</p>
+                  </div>
+                  <span className={`inline-block px-2.5 py-1 text-xs font-semibold rounded-full border ${sale.pagado ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}`}>
+                    {sale.pagado ? 'Pagado' : 'No pagado'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Patente</p>
+                    <p className="text-gray-900 dark:text-gray-100">{sale.patente || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Sucursal</p>
+                    <p className="text-gray-900 dark:text-gray-100">{sale.sucursal.nombre}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Fecha</p>
+                    <p className="text-gray-900 dark:text-gray-100">{formatSaleDate(sale)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</p>
+                    <p className="font-bold text-blue-600 dark:text-cyan-400">{formatCLP(Number(sale.total))}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Servicios</p>
+                  <div className="space-y-1 text-sm">
+                    {sale.servicios?.length > 0 && sale.servicios.map((service) => (
+                      <div key={`m-service-${service.id}`} className="text-gray-800 dark:text-gray-200">
+                        <span className="font-medium">{service.nombre}</span>
+                        <span className="text-gray-500 dark:text-gray-400 ml-2">({formatCLP(Number(service.precio))})</span>
+                      </div>
+                    ))}
+                    {sale.serviciosPersonalizados && sale.serviciosPersonalizados.length > 0 && sale.serviciosPersonalizados.map((customService, index: number) => (
+                      <div key={`m-custom-${sale.id}-${index}`} className="text-gray-800 dark:text-gray-200">
+                        <span className="font-medium text-blue-600 dark:text-cyan-400">{customService.nombre}</span>
+                        <span className="text-gray-500 dark:text-gray-400 ml-2">({formatCLP(Number(customService.precio))})</span>
+                        <span className="inline-block ml-2 px-2 py-0.5 text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">Personalizado</span>
+                      </div>
+                    ))}
+                    {(!sale.servicios || sale.servicios.length === 0) && (!sale.serviciosPersonalizados || sale.serviciosPersonalizados.length === 0) && (
+                      <span className="text-gray-400 italic">Sin servicios</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    onClick={() => handleShowDetail(sale.id)}
+                    className="text-blue-600 hover:text-blue-900 dark:text-cyan-400 dark:hover:text-cyan-200 underline text-sm"
+                    title="Ver detalle"
+                  >
+                    Ver detalle
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(sale)}
+                    className="p-1.5 rounded hover:bg-red-100 dark:hover:bg-red-900 transition"
+                    title="Eliminar"
+                    aria-label="Eliminar"
+                  >
+                    <FaTrash className="w-4 h-4 text-red-500" />
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Patente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Sucursal</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <button onClick={() => handleSort('cliente')} className="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-cyan-300">
+                    Cliente {renderSortIcon('cliente')}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <button onClick={() => handleSort('patente')} className="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-cyan-300">
+                    Patente {renderSortIcon('patente')}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <button onClick={() => handleSort('sucursal')} className="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-cyan-300">
+                    Sucursal {renderSortIcon('sucursal')}
+                  </button>
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Servicios</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pagado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fecha</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <button onClick={() => handleSort('total')} className="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-cyan-300">
+                    Total {renderSortIcon('total')}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <button onClick={() => handleSort('pagado')} className="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-cyan-300">
+                    Pagado {renderSortIcon('pagado')}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                  <button onClick={() => handleSort('fecha')} className="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-cyan-300">
+                    Fecha {renderSortIcon('fecha')}
+                  </button>
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
@@ -546,13 +784,13 @@ const SaleRegistration = () => {
                           <ul className="list-disc list-inside space-y-1 mt-2">
                             {sale.serviciosPersonalizados.map((customService, index: number) => (
                               <li key={`custom-${index}`} className="text-sm">
-                                <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                                <span className="font-medium text-blue-600 dark:text-cyan-400">
                                   {customService.nombre}
                                 </span>
                                 <span className="text-gray-500 dark:text-gray-400 ml-2">
                                   ({formatCLP(Number(customService.precio))})
                                 </span>
-                                <span className="inline-block ml-2 px-2 py-0.5 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
+                                <span className="inline-block ml-2 px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
                                   Personalizado
                                 </span>
                               </li>
@@ -577,18 +815,12 @@ const SaleRegistration = () => {
                         <span className="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 border border-red-400">No pagado</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                      {(() => {
-                        const dateStr = sale.createdAt || sale.fecha;
-                        const date = dateStr ? new Date(dateStr) : null;
-                        return date && !isNaN(date.getTime()) ? date.toLocaleDateString() : '-';
-                      })()}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">{formatSaleDate(sale)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleShowDetail(sale.id)}
-                          className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200 underline"
+                          className="text-blue-600 hover:text-blue-900 dark:text-cyan-400 dark:hover:text-cyan-200 underline"
                           title="Ver detalle"
                         >
                           Ver detalle
@@ -616,6 +848,22 @@ const SaleRegistration = () => {
               ? 'Sin resultados'
               : `Mostrando ${(safePage - 1) * pageSize + 1}–${Math.min(safePage * pageSize, filteredSales.length)} de ${filteredSales.length} ventas`}
           </p>
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+            <span>Filas:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="px-2 py-1 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
           {totalPages > 1 && (
             <nav className="flex items-center gap-1" aria-label="Paginación">
               <button
@@ -646,7 +894,7 @@ const SaleRegistration = () => {
                     aria-current={safePage === page ? 'page' : undefined}
                     className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                       safePage === page
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >
@@ -691,7 +939,7 @@ const SaleRegistration = () => {
                 value={searchTerm}
                 onChange={handleClientSearch}
                 autoComplete='off'
-                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                 placeholder="Buscar cliente..."
                 disabled={isLoading}
               />
@@ -719,7 +967,7 @@ const SaleRegistration = () => {
                 id="sucursal"
                 value={formData.sucursalId}
                 onChange={(e) => setFormData(prev => ({ ...prev, sucursalId: Number(e.target.value) }))}
-                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                 required
                 disabled={isLoading}
               >
@@ -742,7 +990,7 @@ const SaleRegistration = () => {
                 id="patente"
                 value={formData.patente}
                 onChange={handlePatenteChange}
-                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                className="mt-1 block w-full h-10 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                 placeholder="Ej: ABCD·12 o AB·1234"
                 maxLength={7}
                 disabled={isLoading}
@@ -762,7 +1010,7 @@ const SaleRegistration = () => {
               <button
                 type="button"
                 onClick={() => setShowCustomServiceForm(true)}
-                className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                className="text-sm text-blue-600 hover:text-blue-500 dark:text-cyan-400 dark:hover:text-cyan-300"
               >
                 + Agregar servicio personalizado
               </button>
@@ -776,7 +1024,7 @@ const SaleRegistration = () => {
                     id={`service-${service.id}`}
                     checked={selectedServices.some(s => 'id' in s && s.id === service.id)}
                     onChange={() => handleServiceToggle(service)}
-                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-400 border-gray-300 rounded"
                     disabled={isLoading}
                   />
                   <label
@@ -812,7 +1060,7 @@ const SaleRegistration = () => {
               id="pagado"
               checked={pagado}
               onChange={() => setPagado(prev => !prev)}
-              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-400 border-gray-300 rounded"
               disabled={isLoading}
             />
             <label htmlFor="pagado" className="ml-2 block text-sm text-gray-900 dark:text-gray-200">
@@ -823,7 +1071,7 @@ const SaleRegistration = () => {
           <div className="pt-4">
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 disabled:opacity-50"
               disabled={isLoading || !formData.clienteId || !formData.sucursalId || selectedServices.length === 0}
             >
               {isLoading ? 'Registrando...' : 'Registrar Venta'}
@@ -849,7 +1097,7 @@ const SaleRegistration = () => {
                   id="nombre"
                   value={customService.nombre}
                   onChange={(e) => setCustomService(prev => ({ ...prev, nombre: e.target.value }))}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                   required
                 />
               </div>
@@ -867,7 +1115,7 @@ const SaleRegistration = () => {
                       const numericValue = parseCLPInput(e.target.value);
                       setCustomService(prev => ({ ...prev, precio: numericValue }));
                     }}
-                    className="mt-1 block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                    className="mt-1 block w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                     placeholder="0"
                     required
                   />
@@ -884,7 +1132,7 @@ const SaleRegistration = () => {
                   id="descripcion"
                   value={customService.descripcion}
                   onChange={(e) => setCustomService(prev => ({ ...prev, descripcion: e.target.value }))}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                   rows={3}
                   required
                 />
@@ -893,13 +1141,13 @@ const SaleRegistration = () => {
                 <button
                   type="button"
                   onClick={() => setShowCustomServiceForm(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 border border-transparent rounded-md hover:from-blue-700 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400"
                 >
                   Agregar
                 </button>
@@ -960,7 +1208,7 @@ const SaleRegistration = () => {
                       <span className="font-semibold text-lg block mb-2 text-gray-300">Servicios Personalizados</span>
                       <ul className="ml-4 space-y-2">
                         {detailSale.serviciosPersonalizados.map((sp: any, idx: number) => (
-                          <li key={idx} className="pl-3 border-l-4 border-indigo-400">
+                          <li key={idx} className="pl-3 border-l-4 border-cyan-400">
                             <div className="flex justify-between font-medium">
                               <span className="text-gray-100">{sp.nombre}</span>
                               <span className="font-mono text-gray-100">{formatCLP(Number(sp.precio))}</span>
@@ -987,7 +1235,7 @@ const SaleRegistration = () => {
                   <button
                     onClick={handleTogglePagado}
                     disabled={isTogglingPaid}
-                    className={`ml-4 px-3 py-1 text-xs font-semibold rounded bg-indigo-600 hover:bg-indigo-700 text-white transition disabled:opacity-50`}
+                    className={`ml-4 px-3 py-1 text-xs font-semibold rounded bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white transition disabled:opacity-50`}
                   >
                     {detailSale.pagado ? 'Marcar como No Pagado' : 'Marcar como Pagado'}
                   </button>

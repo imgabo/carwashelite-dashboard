@@ -1,14 +1,85 @@
 @import "tailwindcss";
 
+:root {
+  color-scheme: dark;
+}
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
 
-/* Estilos para el selector de período */
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.app-surface {
+  @apply bg-slate-900 border border-slate-700 shadow-sm;
+}
+
+.card-executive {
+  @apply rounded-2xl bg-slate-900 border border-slate-700 shadow-sm text-slate-100;
+}
+
+.section-title {
+  @apply text-xl sm:text-2xl font-bold text-slate-100;
+}
+
+.input-elevated {
+  @apply mt-1 block w-full h-10 px-3 py-2 border border-slate-600 rounded-lg bg-slate-800 text-slate-100 shadow-sm;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-medium border border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors;
+}
+
+.btn-danger {
+  @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg text-sm font-semibold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors;
+}
+
+input,
+select,
+textarea {
+  @apply transition-colors duration-200;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  @apply outline-none ring-2 ring-blue-400/50 border-blue-400;
+}
+
 select option {
-  @apply bg-gray-800 text-white;
+  @apply bg-slate-900 text-slate-100;
 }
 
-.dark select option {
-  @apply bg-gray-900;
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(148 163 184) transparent;
 }
 
-/* Otros estilos existentes... */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.65);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(100 116 139 / 0.9);
+}
